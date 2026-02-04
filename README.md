@@ -1,5 +1,9 @@
 # Aether Flow
 
+[![Node version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen)](https://nodejs.org/)
+[![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+[![Docker](https://img.shields.io/badge/docker-supported-blue)](https://www.docker.com/)
+
 基于 Vue 3 和 NestJS 的 AI Agent 可视化工作流编排平台。
 
 ## 项目简介
