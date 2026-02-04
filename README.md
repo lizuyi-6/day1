@@ -1,7 +1,7 @@
 # Aether Flow
 
 [![Node version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen)](https://nodejs.org/)
-[![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+[![License](https://img.shields.io/badge/license-GPL--3.0-blue)](LICENSE)
 [![Docker](https://img.shields.io/badge/docker-supported-blue)](https://www.docker.com/)
 
 基于 Vue 3 和 NestJS 的 AI Agent 可视化工作流编排平台。
@@ -534,7 +534,24 @@ npm run test:cov
 
 ## License
 
-MIT License
+Copyright (C) 2024 lizuyi-6
+
+This project is licensed under the GPL-3.0 License - see the [LICENSE](LICENSE) file for details.
+
+### 使用说明
+
+**允许的使用方式：**
+- 个人学习和研究
+- 开源项目（需遵守 GPL-3.0 协议）
+- 非商业性质的内部使用
+
+**限制：**
+- 禁止未经授权的商业使用
+- 商业使用需获得版权所有者的书面许可
+
+**商业授权联系：**
+- GitHub: [@lizuyi-6](https://github.com/lizuyi-6)
+- Email: lizuyi-6@users.noreply.github.com
 
 ## 联系方式
 
