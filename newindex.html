@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pro AI Workflow Engine</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://code.iconify.design/iconify-icon/1.0.7/iconify-icon.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: #f8fafc;
+            color: #0f172a;
+        }
+
+        .font-mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Technical Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-left: 1px solid #e2e8f0;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border: 2px solid #f1f5f9;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        /* Technical Dot Grid */
+        .bg-grid-dots {
+            background-size: 24px 24px;
+            background-image: radial-gradient(circle, #cbd5e1 1px, transparent 1px);
+        }
+
+        /* SVG Connections */
+        .connection-path {
+            fill: none;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            transition: stroke 0.2s;
+        }
+
+        .connection-path:hover {
+            stroke: #6366f1;
+            stroke-width: 2px;
+            cursor: pointer;
+        }
+
+        /* Port Styling */
+        .node-port {
+            transition: all 0.15s ease;
+        }
+
+        .node-port:hover {
+            transform: scale(1.2);
+            border-color: #6366f1;
+        }
+
+        /* Code Syntax Highlighting Simulation */
+        .cm-keyword {
+            color: #cf222e;
+        }
+
+        .cm-string {
+            color: #0a3069;
+        }
+
+        .cm-variable {
+            color: #24292f;
+        }
+
+        .cm-number {
+            color: #0550ae;
+        }
+
+        /* Range Input */
+        input[type=range] {
+            -webkit-appearance: none;
+            background: transparent;
+        }
+
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 12px;
+            width: 12px;
+            border-radius: 50%;
+            background: #fff;
+            border: 1px solid #64748b;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+            margin-top: -5px;
+        }
+
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 2px;
+            background: #e2e8f0;
+        }
+    </style>
+</head>
+
+<body
+    class="flex flex-col h-screen w-full overflow-hidden text-slate-800 antialiased selection:bg-indigo-500/10 selection:text-indigo-700">
+
+    <!-- Top Navigation Bar -->
+    <header class="flex h-10 w-full shrink-0 items-center justify-between border-b border-slate-200 bg-white px-3 z-50">
+        <div class="flex items-center gap-3">
+            <div class="flex items-center gap-2">
+                <div class="flex h-6 w-6 items-center justify-center rounded bg-slate-900 text-white">
+                    <iconify-icon icon="solar:layers-minimalistic-bold" width="14"></iconify-icon>
+                </div>
+                <span class="text-xs font-semibold tracking-tight text-slate-900">Workflow Engine <span
+                        class="text-slate-400 font-normal">/</span> v2.4.0</span>
+            </div>
+            <div class="h-4 w-px bg-slate-200"></div>
+            <div class="flex items-center gap-1">
+                <span class="text-[11px] text-slate-500">Project:</span>
+                <span class="text-[11px] font-medium text-slate-900">Support_Agent_Main</span>
+                <iconify-icon icon="solar:alt-arrow-down-linear" width="10" class="text-slate-400 ml-1"></iconify-icon>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-3">
+            <div class="flex items-center gap-2 mr-2 bg-slate-50 px-2 py-1 rounded border border-slate-200">
+                <span class="relative flex h-2 w-2">
+                    <span
+                        class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                </span>
+                <span class="text-[10px] font-mono text-slate-600">socket_connected</span>
+            </div>
+
+            <button
+                class="flex items-center gap-1.5 rounded border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors">
+                <iconify-icon icon="solar:diskette-linear" width="12"></iconify-icon> Save
+            </button>
+            <button
+                class="flex items-center gap-1.5 rounded bg-slate-900 px-3 py-1 text-[11px] font-medium text-white shadow-sm hover:bg-slate-800 transition-colors">
+                <iconify-icon icon="solar:play-linear" width="12"></iconify-icon> Deploy
+            </button>
+        </div>
+    </header>
+
+    <div class="flex flex-1 overflow-hidden">
+
+        <!-- Left Sidebar: Nodes & Assets -->
+        <aside class="flex w-64 flex-col border-r border-slate-200 bg-white z-20">
+            <div class="flex border-b border-slate-200">
+                <button
+                    class="flex-1 border-b-2 border-slate-900 py-2.5 text-[11px] font-medium text-slate-900">Components</button>
+                <button
+                    class="flex-1 border-b-2 border-transparent py-2.5 text-[11px] font-medium text-slate-500 hover:text-slate-700">Variables</button>
+            </div>
+
+            <div class="p-2 border-b border-slate-200">
+                <div class="relative">
+                    <iconify-icon icon="solar:magnifer-linear"
+                        class="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" width="12"></iconify-icon>
+                    <input type="text" placeholder="Search nodes..."
+                        class="w-full rounded bg-slate-50 border border-slate-200 py-1.5 pl-8 pr-2 text-[11px] text-slate-900 placeholder:text-slate-400 focus:border-slate-400 focus:outline-none transition-colors">
+                </div>
+            </div>
+
+            <div class="flex-1 overflow-y-auto p-2 space-y-4">
+
+                <!-- Section: Inputs -->
+                <div>
+                    <h3 class="px-2 mb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Triggers
+                    </h3>
+                    <div class="space-y-0.5">
+                        <div
+                            class="group flex cursor-grab items-center gap-2 rounded px-2 py-1.5 hover:bg-slate-50 border border-transparent hover:border-slate-200 transition-all">
+                            <div
+                                class="flex h-5 w-5 items-center justify-center rounded bg-blue-50 text-blue-600 border border-blue-100">
+                                <iconify-icon icon="solar:chat-round-line-linear" width="12"></iconify-icon>
+                            </div>
+                            <span class="text-[11px] font-medium text-slate-700">Chat Input</span>
+                            <iconify-icon icon="solar:menu-dots-linear"
+                                class="ml-auto opacity-0 group-hover:opacity-100 text-slate-400"
+                                width="12"></iconify-icon>
+                        </div>
+                        <div
+                            class="group flex cursor-grab items-center gap-2 rounded px-2 py-1.5 hover:bg-slate-50 border border-transparent hover:border-slate-200 transition-all">
+                            <div
+                                class="flex h-5 w-5 items-center justify-center rounded bg-purple-50 text-purple-600 border border-purple-100">
+                                <iconify-icon icon="solar:link-linear" width="12"></iconify-icon>
+                            </div>
+                            <span class="text-[11px] font-medium text-slate-700">Webhook</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section: Logic -->
+                <div>
+                    <h3 class="px-2 mb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Compute</h3>
+                    <div class="space-y-0.5">
+                        <div
+                            class="group flex cursor-grab items-center gap-2 rounded px-2 py-1.5 hover:bg-slate-50 border border-transparent hover:border-slate-200 transition-all">
+                            <div
+                                class="flex h-5 w-5 items-center justify-center rounded bg-indigo-50 text-indigo-600 border border-indigo-100">
+                                <iconify-icon icon="solar:stars-linear" width="12"></iconify-icon>
+                            </div>
+                            <span class="text-[11px] font-medium text-slate-700">LLM Generation</span>
+                            <span class="ml-auto text-[9px] font-mono text-slate-400">GPT</span>
+                        </div>
+                        <div
+                            class="group flex cursor-grab items-center gap-2 rounded px-2 py-1.5 hover:bg-slate-50 border border-transparent hover:border-slate-200 transition-all">
+                            <div
+                                class="flex h-5 w-5 items-center justify-center rounded bg-orange-50 text-orange-600 border border-orange-100">
+                                <iconify-icon icon="solar:code-square-linear" width="12"></iconify-icon>
+                            </div>
+                            <span class="text-[11px] font-medium text-slate-700">Python Script</span>
+                        </div>
+                        <div
+                            class="group flex cursor-grab items-center gap-2 rounded px-2 py-1.5 hover:bg-slate-50 border border-transparent hover:border-slate-200 transition-all">
+                            <div
+                                class="flex h-5 w-5 items-center justify-center rounded bg-teal-50 text-teal-600 border border-teal-100">
+                                <iconify-icon icon="solar:branching-paths-down-linear" width="12"></iconify-icon>
+                            </div>
+                            <span class="text-[11px] font-medium text-slate-700">Router / If-Else</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section: Data -->
+                <div>
+                    <h3 class="px-2 mb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Data</h3>
+                    <div class="space-y-0.5">
+                        <div
+                            class="group flex cursor-grab items-center gap-2 rounded px-2 py-1.5 hover:bg-slate-50 border border-transparent hover:border-slate-200 transition-all">
+                            <div
+                                class="flex h-5 w-5 items-center justify-center rounded bg-emerald-50 text-emerald-600 border border-emerald-100">
+                                <iconify-icon icon="solar:database-linear" width="12"></iconify-icon>
+                            </div>
+                            <span class="text-[11px] font-medium text-slate-700">Vector Search</span>
+                        </div>
+                        <div
+                            class="group flex cursor-grab items-center gap-2 rounded px-2 py-1.5 hover:bg-slate-50 border border-transparent hover:border-slate-200 transition-all">
+                            <div
+                                class="flex h-5 w-5 items-center justify-center rounded bg-amber-50 text-amber-600 border border-amber-100">
+                                <iconify-icon icon="solar:globe-linear" width="12"></iconify-icon>
+                            </div>
+                            <span class="text-[11px] font-medium text-slate-700">HTTP Request</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mini Map Area -->
+            <div class="h-48 border-t border-slate-200 bg-slate-50/50 p-3">
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">Overview</span>
+                    <span class="text-[10px] text-slate-400">100%</span>
+                </div>
+                <div class="w-full h-32 bg-white border border-slate-200 rounded relative overflow-hidden">
+                    <!-- Fake minimap nodes -->
+                    <div class="absolute left-2 top-4 w-6 h-4 bg-blue-100 border border-blue-200 rounded-sm"></div>
+                    <div class="absolute left-10 top-8 w-6 h-4 bg-indigo-100 border border-indigo-200 rounded-sm"></div>
+                    <div class="absolute left-20 top-10 w-6 h-4 bg-slate-100 border border-slate-200 rounded-sm"></div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Canvas -->
+        <main class="relative flex-1 bg-[#f8fafc] bg-grid-dots overflow-hidden cursor-grab active:cursor-grabbing">
+
+            <!-- Floating Controls -->
+            <div class="absolute top-4 left-4 flex flex-col gap-2 z-30">
+                <div class="flex flex-col rounded-md bg-white border border-slate-200 shadow-sm">
+                    <button
+                        class="p-1.5 text-slate-500 hover:text-slate-900 hover:bg-slate-50 rounded-t-md border-b border-slate-100"
+                        title="Select">
+                        <iconify-icon icon="solar:cursor-linear" width="16"></iconify-icon>
+                    </button>
+                    <button
+                        class="p-1.5 text-slate-500 hover:text-slate-900 hover:bg-slate-50 border-b border-slate-100"
+                        title="Pan">
+                        <iconify-icon icon="solar:hand-shake-linear" width="16"></iconify-icon>
+                    </button>
+                    <button class="p-1.5 text-slate-500 hover:text-slate-900 hover:bg-slate-50 rounded-b-md"
+                        title="Comment">
+                        <iconify-icon icon="solar:chat-line-linear" width="16"></iconify-icon>
+                    </button>
+                </div>
+            </div>
+
+            <div class="absolute top-4 right-4 flex gap-2 z-30">
+                <div class="px-2 py-1 rounded bg-white border border-slate-200 shadow-sm flex items-center gap-2">
+                    <span class="h-1.5 w-1.5 rounded-full bg-slate-300"></span>
+                    <span class="text-[10px] font-medium text-slate-600">Read-only</span>
+                </div>
+            </div>
+
+            <!-- Connections Layer -->
+            <svg class="pointer-events-none absolute inset-0 h-full w-full z-0 overflow-visible">
+                <defs>
+                    <marker id="arrow-default" markerWidth="6" markerHeight="6" refX="4" refY="3" orient="auto">
+                        <path d="M0,0 L0,6 L6,3 z" fill="#cbd5e1" />
+                    </marker>
+                    <marker id="arrow-active" markerWidth="6" markerHeight="6" refX="4" refY="3" orient="auto">
+                        <path d="M0,0 L0,6 L6,3 z" fill="#6366f1" />
+                    </marker>
+                </defs>
+
+                <!-- Connection 1: Trigger -> Transform -->
+                <path d="M 280 180 C 330 180, 330 240, 380 240" stroke="#cbd5e1" stroke-width="1.5"
+                    class="connection-path" marker-end="url(#arrow-default)" />
+
+                <!-- Connection 2: Transform -> LLM -->
+                <path d="M 620 240 C 660 240, 660 320, 700 320" stroke="#cbd5e1" stroke-width="1.5"
+                    class="connection-path" marker-end="url(#arrow-default)" />
+
+                <!-- Connection 3: LLM -> Vector Store (Active) -->
+                <path d="M 950 320 C 1000 320, 1000 320, 1050 320" stroke="#6366f1" stroke-width="2"
+                    class="connection-path" marker-end="url(#arrow-active)" />
+            </svg>
+
+            <!-- NODE 1: Trigger (Simple) -->
+            <div
+                class="absolute left-[80px] top-[140px] w-[200px] rounded-md border border-slate-200 bg-white shadow-sm hover:shadow-md hover:border-blue-300 transition-all z-10 group">
+                <!-- Header -->
+                <div
+                    class="flex items-center justify-between border-b border-slate-100 px-2 py-1.5 bg-slate-50/80 rounded-t-md">
+                    <div class="flex items-center gap-2">
+                        <iconify-icon icon="solar:chat-round-line-linear" class="text-blue-500"
+                            width="14"></iconify-icon>
+                        <span class="text-[11px] font-semibold text-slate-800">Chat Input</span>
+                    </div>
+                    <span class="text-[9px] font-mono text-slate-400">#TR-01</span>
+                </div>
+                <!-- Body -->
+                <div class="p-2 space-y-2">
+                    <div class="flex justify-between items-center">
+                        <span class="text-[10px] text-slate-500 font-medium">Output</span>
+                        <span
+                            class="px-1.5 py-0.5 bg-slate-100 rounded text-[9px] font-mono text-slate-600">String</span>
+                    </div>
+                    <div class="rounded bg-slate-50 border border-slate-100 p-1.5">
+                        <div class="text-[10px] text-slate-600 italic">"How do I reset my API key?"</div>
+                    </div>
+                </div>
+                <!-- Handle Output -->
+                <div
+                    class="absolute -right-1.5 top-10 h-3 w-3 rounded-full border border-slate-300 bg-white hover:bg-blue-500 hover:border-blue-500 z-20 cursor-crosshair shadow-sm">
+                </div>
+            </div>
+
+            <!-- NODE 2: Transform (Medium) -->
+            <div
+                class="absolute left-[380px] top-[180px] w-[240px] rounded-md border border-slate-200 bg-white shadow-sm hover:shadow-md hover:border-orange-300 transition-all z-10">
+                <div
+                    class="flex items-center justify-between border-b border-slate-100 px-2 py-1.5 bg-slate-50/80 rounded-t-md">
+                    <div class="flex items-center gap-2">
+                        <iconify-icon icon="solar:code-square-linear" class="text-orange-500" width="14"></iconify-icon>
+                        <span class="text-[11px] font-semibold text-slate-800">Context Builder</span>
+                    </div>
+                    <div class="flex items-center gap-1">
+                        <iconify-icon icon="solar:play-circle-linear"
+                            class="text-slate-400 hover:text-green-500 cursor-pointer" width="12"></iconify-icon>
+                    </div>
+                </div>
+                <div class="p-2 space-y-2.5">
+                    <!-- Input Param -->
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-1.5">
+                            <div class="h-2 w-2 rounded-full border border-blue-400 bg-blue-100"></div>
+                            <span class="text-[10px] text-slate-600">query</span>
+                        </div>
+                        <span class="text-[9px] font-mono text-slate-400 truncate max-w-[80px]">TR-01.output</span>
+                    </div>
+                    <!-- Code Snippet -->
+                    <div class="relative rounded border border-slate-200 bg-white">
+                        <div
+                            class="absolute top-0 right-0 p-1 bg-slate-50 border-b border-l border-slate-100 rounded-bl text-[8px] font-mono text-slate-500">
+                            PY</div>
+                        <div class="p-1.5 font-mono text-[9px] leading-relaxed text-slate-600">
+                            <span class="cm-keyword">def</span> <span class="cm-number">process</span>(query):<br>
+                            &nbsp;&nbsp;<span class="cm-keyword">return</span> {<br>
+                            &nbsp;&nbsp;&nbsp;&nbsp;<span class="cm-string">"q"</span>: query.trim(),<br>
+                            &nbsp;&nbsp;&nbsp;&nbsp;<span class="cm-string">"ts"</span>: time.now()<br>
+                            &nbsp;&nbsp;}
+                        </div>
+                    </div>
+                </div>
+                <div
+                    class="px-2 py-1 border-t border-slate-100 flex justify-between items-center bg-slate-50/50 rounded-b-md">
+                    <span class="text-[9px] text-slate-400">Duration: 45ms</span>
+                    <span class="text-[9px] text-green-600 flex items-center gap-1"><iconify-icon
+                            icon="solar:check-circle-bold" width="8"></iconify-icon> Success</span>
+                </div>
+                <!-- Handles -->
+                <div
+                    class="absolute -left-1.5 top-10 h-3 w-3 rounded-full border border-slate-300 bg-slate-100 hover:border-blue-500 z-20">
+                </div>
+                <div
+                    class="absolute -right-1.5 top-10 h-3 w-3 rounded-full border border-slate-300 bg-white hover:bg-orange-500 hover:border-orange-500 z-20 cursor-crosshair shadow-sm">
+                </div>
+            </div>
+
+            <!-- NODE 3: LLM (Complex/Active) -->
+            <div
+                class="absolute left-[700px] top-[240px] w-[260px] rounded-md border border-indigo-500 bg-white shadow-lg shadow-indigo-100 z-20 ring-1 ring-indigo-500/20">
+                <div
+                    class="flex items-center justify-between border-b border-indigo-100 px-2 py-1.5 bg-indigo-50/30 rounded-t-md">
+                    <div class="flex items-center gap-2">
+                        <iconify-icon icon="solar:stars-linear" class="text-indigo-600" width="14"></iconify-icon>
+                        <span class="text-[11px] font-semibold text-slate-900">LLM Inference</span>
+                    </div>
+                    <span
+                        class="px-1.5 py-0.5 bg-indigo-100 text-indigo-700 rounded text-[9px] font-bold tracking-wide">ACTIVE</span>
+                </div>
+
+                <div class="p-2 space-y-3">
+                    <!-- Config Row -->
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block text-[9px] font-medium text-slate-500 mb-0.5">Model</label>
+                            <div
+                                class="flex items-center gap-1 rounded border border-slate-200 bg-slate-50 px-1.5 py-1">
+                                <iconify-icon icon="solar:bolt-circle-linear" width="10"
+                                    class="text-slate-400"></iconify-icon>
+                                <span class="text-[10px] font-medium text-slate-700">gpt-4-turbo</span>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-[9px] font-medium text-slate-500 mb-0.5">Temp</label>
+                            <div
+                                class="flex items-center gap-1 rounded border border-slate-200 bg-slate-50 px-1.5 py-1">
+                                <span class="text-[10px] font-mono text-slate-700">0.7</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Inputs -->
+                    <div class="space-y-1.5 pt-1">
+                        <div class="flex items-center justify-between group">
+                            <div class="flex items-center gap-1.5">
+                                <div class="h-2 w-2 rounded-full border border-orange-400 bg-orange-100"></div>
+                                <span class="text-[10px] text-slate-600">system_prompt</span>
+                            </div>
+                            <iconify-icon icon="solar:link-broken-linear"
+                                class="hidden group-hover:block text-slate-400" width="10"></iconify-icon>
+                        </div>
+                        <div class="flex items-center justify-between group">
+                            <div class="flex items-center gap-1.5">
+                                <div class="h-2 w-2 rounded-full border border-orange-400 bg-orange-100"></div>
+                                <span class="text-[10px] text-slate-600">user_message</span>
+                            </div>
+                            <span
+                                class="text-[9px] font-mono text-indigo-600 bg-indigo-50 px-1 rounded">connected</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Footer Status -->
+                <div
+                    class="px-2 py-1.5 border-t border-indigo-50 bg-indigo-50/10 flex justify-between items-center rounded-b-md">
+                    <div class="flex items-center gap-2">
+                        <span class="flex items-center gap-1 text-[9px] text-slate-500">
+                            <iconify-icon icon="solar:clock-circle-linear" width="10"></iconify-icon> 2.4s
+                        </span>
+                        <span class="flex items-center gap-1 text-[9px] text-slate-500">
+                            <iconify-icon icon="solar:ticket-linear" width="10"></iconify-icon> 420 toks
+                        </span>
+                    </div>
+                    <span class="text-[9px] font-mono text-slate-400">$0.012</span>
+                </div>
+
+                <!-- Handles -->
+                <div
+                    class="absolute -left-1.5 top-12 h-3 w-3 rounded-full border border-indigo-200 bg-white hover:border-indigo-500 z-20">
+                </div>
+                <div
+                    class="absolute -right-1.5 top-12 h-3 w-3 rounded-full border border-indigo-500 bg-indigo-600 z-20 cursor-crosshair shadow-sm ring-2 ring-white">
+                </div>
+            </div>
+
+            <!-- NODE 4: Vector Store -->
+            <div
+                class="absolute left-[1050px] top-[280px] w-[200px] rounded-md border border-slate-200 bg-white shadow-sm opacity-90 z-10">
+                <div class="flex items-center justify-between border-b border-slate-100 px-2 py-1.5 rounded-t-md">
+                    <div class="flex items-center gap-2">
+                        <iconify-icon icon="solar:database-linear" class="text-emerald-500" width="14"></iconify-icon>
+                        <span class="text-[11px] font-semibold text-slate-800">Vector Store</span>
+                    </div>
+                </div>
+                <div class="p-2">
+                    <div class="flex items-center gap-1.5 mb-2">
+                        <div class="h-2 w-2 rounded-full border border-indigo-400 bg-indigo-100"></div>
+                        <span class="text-[10px] text-slate-600">embedding</span>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <div class="h-2 w-2 rounded-full border border-slate-300 bg-slate-100"></div>
+                        <span class="text-[10px] text-slate-400">metadata</span>
+                    </div>
+                </div>
+                <div class="absolute -left-1.5 top-10 h-3 w-3 rounded-full border border-slate-300 bg-slate-100 z-20">
+                </div>
+            </div>
+
+        </main>
+
+        <!-- Right Sidebar: Inspector -->
+        <aside class="flex w-[340px] flex-col border-l border-slate-200 bg-white z-20 shadow-xl shadow-slate-200/50">
+            <!-- Inspector Header -->
+            <div class="flex items-center justify-between px-3 py-3 border-b border-slate-100">
+                <div class="flex items-center gap-2">
+                    <span class="text-[11px] font-bold text-slate-900 uppercase tracking-wide">Inspector</span>
+                </div>
+                <div class="flex gap-1">
+                    <button class="text-slate-400 hover:text-slate-600"><iconify-icon icon="solar:menu-dots-linear"
+                            width="16"></iconify-icon></button>
+                </div>
+            </div>
+
+            <div class="flex-1 overflow-y-auto">
+                <!-- Node Identity -->
+                <div class="p-4 border-b border-slate-100 bg-slate-50/50">
+                    <div class="flex items-start gap-3">
+                        <div
+                            class="mt-1 flex h-8 w-8 items-center justify-center rounded bg-white border border-slate-200 text-indigo-600 shadow-sm">
+                            <iconify-icon icon="solar:stars-bold-duotone" width="18"></iconify-icon>
+                        </div>
+                        <div class="flex-1">
+                            <h2 class="text-sm font-semibold text-slate-900">LLM Inference</h2>
+                            <p class="text-[11px] text-slate-500 mt-0.5">Generates text using OpenAI models.</p>
+                            <div class="flex gap-2 mt-2">
+                                <span class="px-1.5 py-0.5 bg-slate-200 rounded text-[9px] font-mono text-slate-600">ID:
+                                    node_8842</span>
+                                <span
+                                    class="px-1.5 py-0.5 bg-green-100 text-green-700 rounded text-[9px] font-medium">v1.2</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tabs -->
+                <div class="flex border-b border-slate-200 px-1">
+                    <button
+                        class="flex-1 border-b-2 border-indigo-600 py-2 text-[11px] font-semibold text-indigo-600">Configuration</button>
+                    <button
+                        class="flex-1 border-b-2 border-transparent py-2 text-[11px] font-medium text-slate-500 hover:text-slate-700">History</button>
+                    <button
+                        class="flex-1 border-b-2 border-transparent py-2 text-[11px] font-medium text-slate-500 hover:text-slate-700">JSON</button>
+                </div>
+
+                <!-- Form Controls -->
+                <div class="p-4 space-y-5">
+
+                    <!-- Group: Settings -->
+                    <div class="space-y-3">
+                        <div class="flex items-center justify-between">
+                            <label class="text-[11px] font-semibold text-slate-900">Model Provider</label>
+                            <span class="text-[9px] text-indigo-600 cursor-pointer hover:underline">Manage Keys</span>
+                        </div>
+                        <div class="relative">
+                            <select
+                                class="w-full appearance-none rounded border border-slate-200 bg-white px-2.5 py-1.5 text-[11px] font-medium text-slate-700 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                                <option>OpenAI Platform</option>
+                                <option>Azure OpenAI</option>
+                                <option>Anthropic</option>
+                            </select>
+                            <iconify-icon icon="solar:alt-arrow-down-linear"
+                                class="absolute right-2.5 top-2.5 text-slate-400 pointer-events-none"
+                                width="10"></iconify-icon>
+                        </div>
+                    </div>
+
+                    <div class="space-y-3">
+                        <label class="text-[11px] font-semibold text-slate-900">Model Name</label>
+                        <div class="relative">
+                            <select
+                                class="w-full appearance-none rounded border border-slate-200 bg-white px-2.5 py-1.5 text-[11px] font-medium text-slate-700 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                                <option>gpt-4-turbo-2024-04-09</option>
+                                <option>gpt-3.5-turbo-0125</option>
+                            </select>
+                            <iconify-icon icon="solar:alt-arrow-down-linear"
+                                class="absolute right-2.5 top-2.5 text-slate-400 pointer-events-none"
+                                width="10"></iconify-icon>
+                        </div>
+                    </div>
+
+                    <div class="h-px bg-slate-100"></div>
+
+                    <!-- Group: Parameters -->
+                    <div class="space-y-4">
+                        <div class="space-y-2">
+                            <div class="flex justify-between">
+                                <label class="text-[11px] font-semibold text-slate-900">Temperature</label>
+                                <input type="number" value="0.7"
+                                    class="w-10 rounded border border-slate-200 px-1 py-0.5 text-right text-[10px] text-slate-600 focus:border-indigo-500 focus:outline-none">
+                            </div>
+                            <input type="range" min="0" max="1" step="0.1" value="0.7" class="w-full accent-indigo-600">
+                        </div>
+                        <div class="space-y-2">
+                            <div class="flex justify-between">
+                                <label class="text-[11px] font-semibold text-slate-900">Max Tokens</label>
+                                <input type="number" value="2048"
+                                    class="w-12 rounded border border-slate-200 px-1 py-0.5 text-right text-[10px] text-slate-600 focus:border-indigo-500 focus:outline-none">
+                            </div>
+                            <input type="range" min="100" max="8000" step="100" value="2048"
+                                class="w-full accent-indigo-600">
+                        </div>
+                    </div>
+
+                    <div class="h-px bg-slate-100"></div>
+
+                    <!-- Group: Prompt -->
+                    <div class="space-y-2">
+                        <div class="flex items-center justify-between">
+                            <label class="text-[11px] font-semibold text-slate-900">System Prompt</label>
+                            <button
+                                class="flex items-center gap-1 text-[10px] text-slate-400 hover:text-indigo-600"><iconify-icon
+                                    icon="solar:maximize-square-linear" width="10"></iconify-icon> Expand</button>
+                        </div>
+                        <div
+                            class="rounded border border-slate-200 bg-white p-0 overflow-hidden shadow-sm focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500">
+                            <div class="bg-slate-50 border-b border-slate-200 px-2 py-1 flex items-center gap-2">
+                                <span class="text-[9px] font-mono text-slate-500">jinja2</span>
+                            </div>
+                            <textarea
+                                class="w-full resize-y border-none bg-white p-2 text-[10px] font-mono leading-relaxed text-slate-700 focus:ring-0 min-h-[100px]"
+                                spellcheck="false">You are a helpful assistant.
+
+Context: {{ContextBuilder.output}}
+
+User Query: {{ChatInput.message}}
+
+Answer concisely in JSON format.</textarea>
+                        </div>
+                        <div class="flex gap-2 flex-wrap">
+                            <span
+                                class="inline-flex items-center rounded bg-indigo-50 px-1.5 py-0.5 text-[9px] font-medium text-indigo-700 ring-1 ring-inset ring-indigo-700/10">{{ContextBuilder.output}}</span>
+                            <span
+                                class="inline-flex items-center rounded bg-blue-50 px-1.5 py-0.5 text-[9px] font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10">{{ChatInput.message}}</span>
+                        </div>
+                    </div>
+
+                    <!-- Toggle Switches -->
+                    <div class="space-y-2 pt-2">
+                        <div class="flex items-center justify-between py-1">
+                            <div class="flex flex-col">
+                                <span class="text-[11px] font-medium text-slate-700">JSON Mode</span>
+                                <span class="text-[9px] text-slate-400">Enforce valid JSON output</span>
+                            </div>
+                            <div
+                                class="relative inline-flex h-4 w-7 shrink-0 cursor-pointer rounded-full border-2 border-transparent bg-indigo-600 transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:ring-offset-2">
+                                <span
+                                    class="translate-x-3 pointer-events-none inline-block h-3 w-3 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Inspector Footer -->
+            <div class="border-t border-slate-200 bg-slate-50 p-3">
+                <button
+                    class="flex w-full items-center justify-center gap-2 rounded-md bg-white border border-slate-200 px-3 py-2 text-[11px] font-semibold text-slate-700 shadow-sm hover:bg-slate-50 hover:text-slate-900 transition-all">
+                    <iconify-icon icon="solar:play-linear" width="14" class="text-indigo-600"></iconify-icon>
+                    Run This Node
+                </button>
+            </div>
+        </aside>
+
+    </div>
+</body>
+
+</html>

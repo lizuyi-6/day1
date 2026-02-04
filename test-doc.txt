@@ -1,0 +1,11 @@
+Aether Flow 是一个 AI Agent 工作流平台。
+
+它支持可视化工作流编排、知识库管理和智能问答。
+
+技术栈包括 Vue3、NestJS、PostgreSQL 和 LangChain。
+
+用户可以通过拖拽节点创建复杂的 AI 工作流。
+
+系统支持 RAG (检索增强生成) 技术。
+
+Qwen (通义千问) 是阿里云开发的大语言模型。

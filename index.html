@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AETHER FLOW | Protocol v1.0</title>
+    <!-- 引入字体 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            /* 核心色板 - 极简工业白 (Braun/Laboratory Style) */
+            --bg-deep: #F0F2F5;      /* 整体背景：柔和的工程灰 */
+            --bg-panel: #FFFFFF;     /* 面板背景：纯白 */
+            --bg-hover: #F8F9FA;     /* 悬停状态 */
+            
+            --border-dim: #E1E4E8;   /* 极淡的网格线 */
+            --border-light: #D0D7DE; /* 结构边框 */
+            
+            --accent-orange: #FF4500; /* 工业橙 (保持不变，更加醒目) */
+            --accent-glow: rgba(255, 69, 0, 0.15); /* 光晕调淡，适应亮色背景 */
+            --status-green: #059669;  /* 加深的绿色，保证白底对比度 */
+            
+            --text-main: #24292F;    /* 主文字：深炭灰 */
+            --text-dim: #57606A;     /* 次要文字：中灰 */
+            
+            /* 尺寸 */
+            --grid-size: 20px;
+            --border-radius: 4px;    /* 稍微圆润一点点，但依然保持硬朗 */
+            --shadow-card: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            outline: none;
+        }
+
+        body {
+            background-color: var(--bg-deep);
+            color: var(--text-main);
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+            /* 背景网格 - 蓝图感 */
+            background-image: 
+                linear-gradient(var(--border-dim) 1px, transparent 1px),
+                linear-gradient(90deg, var(--border-dim) 1px, transparent 1px);
+            background-size: var(--grid-size) var(--grid-size);
+            min-height: 100vh;
+        }
+
+        /* 顶部导航 */
+        header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 60px;
+            background: rgba(255, 255, 255, 0.9); /* 半透明白 */
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border-light);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 40px;
+            z-index: 1000;
+            box-shadow: 0 1px 0 rgba(0,0,0,0.02);
+        }
+
+        .logo {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 700;
+            font-size: 1.2rem;
+            letter-spacing: -0.5px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #000;
+        }
+
+        .logo::before {
+            content: '';
+            display: block;
+            width: 12px;
+            height: 12px;
+            background-color: var(--accent-orange);
+            /* 亮色模式下减少发光，增加实体感 */
+            box-shadow: none; 
+        }
+
+        .nav-status {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            color: var(--text-dim);
+            display: flex;
+            gap: 20px;
+        }
+
+        .status-item span {
+            color: var(--status-green);
+            font-weight: 600;
+        }
+
+        /* 主容器 */
+        .container {
+            max-width: 1400px;
+            margin: 120px auto 40px;
+            padding: 0 40px;
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 40px;
+            height: calc(100vh - 160px);
+        }
+
+        /* 左侧：英雄区域 */
+        .hero-section {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        h1 {
+            font-size: 5rem;
+            line-height: 0.9;
+            font-weight: 800;
+            letter-spacing: -2px;
+            text-transform: uppercase;
+            margin-bottom: 20px;
+            color: #000; /* 纯黑标题 */
+            background: none;
+            -webkit-text-fill-color: initial;
+        }
+
+        .subtitle {
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--text-dim);
+            font-size: 1.1rem;
+            max-width: 600px;
+            line-height: 1.6;
+            border-left: 3px solid var(--accent-orange);
+            padding-left: 20px;
+            background: rgba(255, 69, 0, 0.05); /* 极淡的橙色背景强调 */
+            padding: 15px 20px;
+        }
+
+        .cta-group {
+            margin-top: 40px;
+            display: flex;
+            gap: 20px;
+        }
+
+        /* 工业风按钮 - 亮色版 */
+        .btn {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+            padding: 15px 30px;
+            border: 1px solid var(--border-light);
+            background: var(--bg-panel);
+            color: var(--text-main);
+            cursor: pointer;
+            text-transform: uppercase;
+            transition: all 0.2s;
+            position: relative;
+            overflow: hidden;
+            font-weight: 600;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+
+        .btn-primary {
+            border-color: var(--accent-orange);
+            background: var(--accent-orange); /* 实心橙色 */
+            color: #FFFFFF; /* 白字 */
+        }
+
+        .btn-primary:hover {
+            background: #E63E00; /* 深一点的橙色 */
+            box-shadow: 0 4px 12px rgba(255, 69, 0, 0.25);
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--text-dim);
+            background: var(--bg-hover);
+        }
+
+        /* 右侧：模拟编辑器 (Mockup) */
+        .editor-mockup {
+            background: #fff; /* 模拟图纸白 */
+            border: 1px solid var(--border-light);
+            border-radius: var(--border-radius);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            box-shadow: var(--shadow-card);
+        }
+
+        .mockup-header {
+            height: 30px;
+            border-bottom: 1px solid var(--border-light);
+            background: #F6F8FA; /* GitHub 风格的表头灰 */
+            display: flex;
+            align-items: center;
+            padding: 0 10px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            color: var(--text-dim);
+        }
+
+        .mockup-body {
+            flex: 1;
+            position: relative;
+            background-color: #ffffff;
+            /* 细微的点阵 */
+            background-image: radial-gradient(#D0D7DE 1px, transparent 1px);
+            background-size: 15px 15px;
+        }
+
+        /* 模拟节点 (Node) - 亮色版 */
+        .node {
+            position: absolute;
+            width: 180px;
+            background: #FFFFFF;
+            border: 1px solid var(--border-light);
+            border-left: 4px solid var(--text-dim);
+            padding: 15px;
+            border-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08); /* 柔和阴影 */
+            transition: transform 0.2s;
+        }
+        
+        .node:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .node-header {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            color: var(--text-dim);
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .node-title {
+            font-weight: 700;
+            font-size: 0.9rem;
+            color: #000;
+        }
+
+        /* 特定节点样式 */
+        .node-start {
+            top: 50px;
+            left: 50px;
+            border-left-color: var(--status-green);
+        }
+
+        .node-rag {
+            top: 150px;
+            left: 120px;
+            border-left-color: var(--accent-orange);
+        }
+
+        .node-llm {
+            top: 280px;
+            left: 80px;
+            border-left-color: #0969DA; /* 科技蓝 */
+        }
+
+        /* 模拟连线 */
+        .connection-line {
+            position: absolute;
+            background: #000; /* 纯黑线，像墨水 */
+            transform-origin: 0 0;
+            z-index: 0;
+            opacity: 0.3;
+        }
+
+        /* 信号动画点 */
+        .signal {
+            position: absolute;
+            width: 6px;
+            height: 6px;
+            background: var(--accent-orange); /* 橙色信号点 */
+            border-radius: 50%;
+            z-index: 1;
+            box-shadow: none; /* 去掉发光，强调实体 */
+            animation: flow 2s infinite linear;
+        }
+
+        @keyframes flow {
+            0% { top: 105px; left: 140px; opacity: 1; }
+            40% { top: 105px; left: 210px; opacity: 1; } 
+            50% { top: 105px; left: 210px; opacity: 0; } 
+            100% { top: 105px; left: 210px; opacity: 0; }
+        }
+
+        @keyframes flow2 {
+            0% { opacity: 0; }
+            45% { top: 205px; left: 210px; opacity: 0; }
+            50% { top: 205px; left: 210px; opacity: 1; } 
+            90% { top: 205px; left: 170px; opacity: 1; } 
+            100% { top: 300px; left: 170px; opacity: 0; } 
+        }
+
+        /* 底部信息栏 */
+        .tech-specs {
+            margin-top: auto;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            border-top: 1px solid var(--border-light);
+            padding-top: 20px;
+        }
+
+        .spec-item {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            color: var(--text-main);
+        }
+        
+        .spec-label {
+            color: var(--text-dim);
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+
+        /* 响应式调整 */
+        @media (max-width: 1024px) {
+            .container {
+                grid-template-columns: 1fr;
+                height: auto;
+            }
+            .editor-mockup {
+                height: 500px;
+                margin-top: 40px;
+            }
+            h1 { font-size: 3rem; }
+        }
+
+        /* 装饰性光标闪烁 */
+        .cursor::after {
+            content: '_';
+            animation: blink 1s step-end infinite;
+            color: var(--accent-orange);
+        }
+        @keyframes blink { 50% { opacity: 0; } }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="logo">AETHER FLOW</div>
+        <div class="nav-status">
+            <div class="status-item">SYSTEM: <span>ONLINE</span></div>
+            <div class="status-item">LATENCY: 12ms</div>
+            <div class="status-item">USER: ABRAHAM</div>
+        </div>
+    </header>
+
+    <div class="container">
+        <!-- 左侧内容 -->
+        <div class="hero-section">
+            <div>
+                <div style="font-family: 'JetBrains Mono'; color: var(--accent-orange); margin-bottom: 20px; font-weight:600;">
+                    // BUILD. DEPLOY. ORCHESTRATE.
+                </div>
+                <h1>INTELLIGENCE<br>ARCHITECT</h1>
+                <p class="subtitle">
+                    Aether Flow 是一个基于节点的智能体编排引擎。<br>
+                    融合 AntV X6 可视化、NestJS 调度器与 RAG 向量检索。<br>
+                    专为全栈工程师打造的工业级生产力工具。
+                </p>
+                
+                <div class="cta-group">
+                    <button class="btn btn-primary">INITIALIZE_CANVAS</button>
+                    <button class="btn btn-secondary">VIEW_DOCUMENTATION</button>
+                </div>
+            </div>
+
+            <div class="tech-specs">
+                <div class="spec-item">
+                    <span class="spec-label">STACK</span>
+                    VUE3 / NESTJS / PGVECTOR
+                </div>
+                <div class="spec-item">
+                    <span class="spec-label">ENGINE</span>
+                    DAG SCHEDULER v0.9
+                </div>
+                <div class="spec-item">
+                    <span class="spec-label">PROTOCOL</span>
+                    JSON-RPC / SSE STREAM
+                </div>
+            </div>
+        </div>
+
+        <!-- 右侧 Mockup -->
+        <div class="editor-mockup">
+            <div class="mockup-header">
+                <span>WORKFLOW_ID: wf_alpha_01</span>
+                <span style="margin-left: auto;">MODE: READ_ONLY</span>
+            </div>
+            <div class="mockup-body">
+                <!-- 模拟连接线 -->
+                <!-- Line 1: Start to RAG -->
+                <div style="position:absolute; top: 107px; left: 140px; width: 70px; height: 1px; background: #999;"></div>
+                <div style="position:absolute; top: 107px; left: 210px; width: 1px; height: 100px; background: #999;"></div>
+                
+                <!-- Line 2: RAG to LLM -->
+                <div style="position:absolute; top: 207px; left: 210px; width: 1px; height: 100px; background: #999;"></div> <!-- Vertical down -->
+                <div style="position:absolute; top: 307px; left: 170px; width: 40px; height: 1px; background: #999;"></div> <!-- Horizontal to LLM Input -->
+
+                <!-- 信号动画 -->
+                <div class="signal"></div>
+                <div class="signal" style="animation-name: flow2; animation-delay: 0s;"></div>
+
+                <!-- 节点 1: Start -->
+                <div class="node node-start">
+                    <div class="node-header">
+                        <span>ID: 001</span>
+                        <span>TRIGGER</span>
+                    </div>
+                    <div class="node-title">USER_QUERY</div>
+                    <div style="margin-top:10px; font-size: 0.7rem; color:#666; font-family:'JetBrains Mono'">
+                        > Input received
+                    </div>
+                </div>
+
+                <!-- 节点 2: RAG -->
+                <div class="node node-rag">
+                    <div class="node-header">
+                        <span>ID: 002</span>
+                        <span>RETRIEVAL</span>
+                    </div>
+                    <div class="node-title">KNOWLEDGE_BASE</div>
+                    <div style="margin-top:10px; font-size: 0.7rem; color:#666; font-family:'JetBrains Mono'">
+                        > Similarity: 0.92<br>
+                        > Chunks found: 3
+                    </div>
+                </div>
+
+                <!-- 节点 3: LLM -->
+                <div class="node node-llm">
+                    <div class="node-header">
+                        <span>ID: 003</span>
+                        <span>GENERATION</span>
+                    </div>
+                    <div class="node-title">GPT_4_TURBO</div>
+                    <div style="margin-top:10px; font-size: 0.7rem; color:#666; font-family:'JetBrains Mono'">
+                        > Streaming...<span class="cursor"></span>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>
