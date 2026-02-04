@@ -11,7 +11,7 @@ const router = createRouter({
       component: LandingPage,
     },
     {
-      path: '/app',
+      path: '/dashboard',
       name: 'home',
       component: HomeView,
     },

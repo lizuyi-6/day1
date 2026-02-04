@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Vue Test</title>
+  <style>
+    body { padding: 20px; font-family: sans-serif; }
+    #app { border: 2px solid blue; padding: 20px; background: white; min-height: 100px; }
+  </style>
+</head>
+<body>
+  <h1>Vue Test Page</h1>
+  <div id="app">Loading Vue...</div>
+
+  <script type="module">
+    import { createApp } from '/node_modules/.vite/deps/vue.js?v=25bff294';
+
+    const app = createApp({
+      template: '<div style="color: green; font-size: 24px;">✅ Vue is Working! This is a Vue component.</div>'
+    });
+
+    app.mount('#app');
+    console.log('Vue app mounted successfully!');
+  </script>
+</body>
+</html>

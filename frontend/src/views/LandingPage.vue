@@ -1,62 +1,24 @@
 <template>
   <div class="relative flex min-h-screen w-full flex-col group/design-root bg-background-light dark:bg-background-dark text-charcoal dark:text-sand font-sans antialiased overflow-x-hidden">
-    <header class="w-full border-b border-sand/50 dark:border-khaki/20 px-6 py-6 lg:px-20 z-10 bg-background-light/90 dark:bg-background-dark/90 backdrop-blur-sm sticky top-0">
-      <div class="mx-auto max-w-[1400px] flex items-center justify-between">
-        <div class="flex items-center gap-4 text-charcoal dark:text-white cursor-pointer" @click="scrollToTop">
-          <div class="size-8 text-primary">
-            <svg class="w-full h-full" fill="none" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
-              <path clip-rule="evenodd" d="M24 4H6V17.3333V30.6667H24V44H42V30.6667V17.3333H24V4Z" fill="currentColor" fill-rule="evenodd"></path>
-            </svg>
-          </div>
-          <h2 class="text-xl font-serif font-bold tracking-tight">Aether Flow</h2>
-        </div>
-
-        <!-- Desktop Nav -->
-        <nav class="hidden md:flex items-center gap-10">
-          <a class="text-sm font-medium hover:text-primary transition-colors duration-300" href="#features" @click.prevent="scrollToSection('features')">Features</a>
-          <a class="text-sm font-medium hover:text-primary transition-colors duration-300" href="#manifesto" @click.prevent="scrollToSection('manifesto')">Manifesto</a>
-          <a class="text-sm font-medium hover:text-primary transition-colors duration-300" href="#stats" @click.prevent="scrollToSection('stats')">About</a>
-          <a class="text-sm font-medium hover:text-primary transition-colors duration-300" href="#footer" @click.prevent="scrollToSection('footer')">Journal</a>
-        </nav>
-
-        <router-link to="/app" class="hidden md:flex cursor-pointer items-center justify-center rounded-full h-10 px-6 bg-primary hover:bg-primary/90 text-white text-sm font-bold transition-all duration-300 shadow-md hover:shadow-lg">
-          <span>Get Started</span>
-        </router-link>
-
-        <!-- Mobile Menu Button -->
-        <button class="md:hidden text-charcoal dark:text-white z-50 relative" @click="toggleMenu">
-          <span class="material-symbols-outlined">{{ isMenuOpen ? 'close' : 'menu' }}</span>
-        </button>
-      </div>
-
-      <!-- Mobile Menu Overlay -->
-      <div v-show="isMenuOpen" class="fixed inset-0 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-md z-40 flex flex-col items-center justify-center gap-8 md:hidden transition-all duration-300">
-        <a class="text-2xl font-serif font-medium text-charcoal dark:text-white" href="#features" @click.prevent="scrollToSection('features', true)">Features</a>
-        <a class="text-2xl font-serif font-medium text-charcoal dark:text-white" href="#manifesto" @click.prevent="scrollToSection('manifesto', true)">Manifesto</a>
-        <a class="text-2xl font-serif font-medium text-charcoal dark:text-white" href="#stats" @click.prevent="scrollToSection('stats', true)">About</a>
-        <a class="text-2xl font-serif font-medium text-charcoal dark:text-white" href="#footer" @click.prevent="scrollToSection('footer', true)">Journal</a>
-        <router-link to="/app" class="cursor-pointer items-center justify-center rounded-full h-12 px-8 bg-primary text-white text-lg font-bold shadow-lg" @click="isMenuOpen = false">
-          Get Started
-        </router-link>
-      </div>
-    </header>
+    <AppHeader />
 
     <main class="flex-grow">
       <!-- Hero -->
       <section id="hero" class="relative px-6 py-12 lg:px-20 lg:py-24 overflow-hidden">
         <div class="mx-auto max-w-[1400px]">
           <div class="grid lg:grid-cols-12 gap-12 items-center">
-            <div class="lg:col-span-5 flex flex-col gap-8 z-10">
-              <span class="uppercase tracking-[0.2em] text-xs font-bold text-khaki">The New Standard</span>
-              <h1 class="font-serif text-5xl lg:text-7xl font-medium leading-[1.1] text-charcoal dark:text-white">
-                Design with <br/><span class="italic text-primary">Intention</span>
+            <div class="lg:col-span-5 flex flex-col gap-10 z-10">
+              <span class="uppercase tracking-[0.2em] text-xs font-bold text-khaki">重新定义工作流</span>
+              <h1 class="font-serif text-5xl lg:text-7xl font-medium leading-[1.15] tracking-tight text-charcoal dark:text-white">
+                意之所至，<br/>
+                <span class="italic text-primary inline-block mt-2">AI相随</span>
               </h1>
-              <p class="text-lg text-khaki dark:text-sand/80 font-light leading-relaxed max-w-md">
-                Build powerful AI workflows in a canvas that feels like a design studio. Warm, intuitive, and beautifully structured for the modern creator.
+              <p class="text-lg text-khaki dark:text-sand/80 font-normal leading-loose tracking-wide max-w-md mt-6">
+                在直观的画布上构建强大的AI工作流。简洁、优雅，为现代创作者而生。
               </p>
-              <div class="flex gap-4 pt-4">
-                <router-link to="/app" class="flex cursor-pointer items-center justify-center rounded-full h-14 px-8 bg-charcoal dark:bg-sand text-white dark:text-charcoal text-base font-bold transition-transform active:scale-95 hover:shadow-xl">
-                  Start Building
+              <div class="flex gap-4 pt-6">
+                <router-link to="/dashboard" class="flex cursor-pointer items-center justify-center rounded-full h-14 px-8 bg-charcoal dark:bg-sand text-white dark:text-charcoal text-base font-bold transition-transform active:scale-95 hover:shadow-xl tracking-wide">
+                  开始探索
                 </router-link>
                 <button class="flex cursor-pointer items-center justify-center rounded-full h-14 w-14 border border-sand dark:border-khaki hover:bg-sand/20 transition-colors">
                   <span class="material-symbols-outlined">play_arrow</span>
@@ -72,10 +34,10 @@
                 <!-- Processing Stream Header -->
                 <div class="absolute top-0 left-0 right-0 p-8 z-20">
                   <div class="flex justify-between items-center mb-3">
-                    <span class="text-[10px] font-bold tracking-[0.2em] uppercase text-charcoal/50 dark:text-white/50">Processing Stream</span>
+                    <span class="text-[10px] font-bold tracking-[0.2em] uppercase text-charcoal/50 dark:text-white/50">处理中</span>
                     <div class="flex items-center gap-2">
                       <div class="size-1.5 rounded-full bg-primary animate-pulse"></div>
-                      <span class="text-[10px] font-bold tracking-wider uppercase text-primary">Live</span>
+                      <span class="text-[10px] font-bold tracking-wider uppercase text-primary">实时</span>
                     </div>
                   </div>
                   <div class="h-1 w-full bg-sand/30 dark:bg-white/10 rounded-full overflow-hidden backdrop-blur-sm">
@@ -132,8 +94,8 @@
                       <span class="material-symbols-outlined">auto_awesome</span>
                     </div>
                     <div>
-                      <h3 class="text-sm font-bold font-serif">Workflow Optimized</h3>
-                      <p class="text-xs text-khaki">AI suggestions active</p>
+                      <h3 class="text-sm font-bold font-serif">工作流已优化</h3>
+                      <p class="text-xs text-khaki">AI建议已应用</p>
                     </div>
                   </div>
                   <div class="h-2 w-full bg-sand/30 rounded-full overflow-hidden">
@@ -152,17 +114,9 @@
       <section id="stats" class="border-y border-sand dark:border-khaki/20 bg-white dark:bg-[#2a241e]">
         <div class="mx-auto max-w-[1400px] px-6 lg:px-20">
           <div class="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-sand dark:divide-khaki/20">
-            <div class="py-10 md:px-10 flex flex-col items-center text-center gap-2">
-              <span class="font-serif text-4xl lg:text-5xl font-medium text-charcoal dark:text-white">10k+</span>
-              <span class="text-sm font-medium uppercase tracking-widest text-khaki">Active Workflows</span>
-            </div>
-            <div class="py-10 md:px-10 flex flex-col items-center text-center gap-2">
-              <span class="font-serif text-4xl lg:text-5xl font-medium text-charcoal dark:text-white">40%</span>
-              <span class="text-sm font-medium uppercase tracking-widest text-khaki">Hours Saved Weekly</span>
-            </div>
-            <div class="py-10 md:px-10 flex flex-col items-center text-center gap-2">
-              <span class="font-serif text-4xl lg:text-5xl font-medium text-charcoal dark:text-white">No. 1</span>
-              <span class="text-sm font-medium uppercase tracking-widest text-khaki">Design Tool 2024</span>
+            <div v-for="(stat, index) in STATS_DATA" :key="stat.label" :class="`animate-on-scroll delay-${(index + 1) * 100}`" class="py-10 md:px-10 flex flex-col items-center text-center gap-2">
+              <span class="font-serif text-4xl lg:text-5xl font-medium text-charcoal dark:text-white">{{ stat.value }}</span>
+              <span class="text-sm font-medium uppercase tracking-widest text-khaki">{{ stat.label }}</span>
             </div>
           </div>
         </div>
@@ -172,63 +126,28 @@
       <section id="manifesto" class="py-24 px-6 lg:px-20 bg-background-light dark:bg-background-dark">
         <div class="mx-auto max-w-[1400px]">
           <div class="flex flex-col lg:flex-row gap-16 mb-20">
-            <div class="lg:w-1/2">
-              <h2 class="font-serif text-4xl lg:text-6xl font-medium leading-tight mb-6 text-charcoal dark:text-white">
-                The Art of <br/><span class="italic text-primary">Automation</span>
+            <div class="lg:w-1/2 animate-from-left">
+              <h2 class="font-serif text-4xl lg:text-6xl font-medium leading-tight tracking-tight mb-8 text-charcoal dark:text-white">
+                化繁为简，<span class="italic text-primary">行云流水</span>
               </h2>
             </div>
-            <div class="lg:w-1/2 flex flex-col justify-end">
-              <p class="text-lg lg:text-xl text-khaki dark:text-sand/80 font-light leading-relaxed">
-                Aether Flow transforms complex logic into elegant visual streams. Experience a tool where form meets function, designed for those who value clarity above all else.
+            <div class="lg:w-1/2 flex flex-col justify-center animate-from-right">
+              <p class="text-lg lg:text-xl text-khaki dark:text-sand/80 font-normal leading-loose tracking-wide">
+                我们相信，优秀的工具应当隐于无形。在Aether Flow，复杂的工作流变得优雅而直观——专注于你的想法，其他的交给我们。
               </p>
             </div>
           </div>
 
           <!-- Features -->
           <div id="features" class="grid md:grid-cols-3 gap-8 scroll-mt-24">
-            <div class="group p-8 rounded-2xl bg-white dark:bg-[#2a241e] border border-transparent hover:border-sand transition-all duration-300 shadow-sm hover:shadow-md">
-              <div class="h-16 mb-4 flex items-center gap-2 overflow-hidden relative">
-                <div class="size-10 border border-dashed border-sand dark:border-white/20 rounded flex items-center justify-center opacity-40 grayscale group-hover:opacity-20 transition-opacity">
-                  <span class="material-symbols-outlined text-lg">crop_square</span>
-                </div>
-                <div class="h-[1px] w-6 bg-gradient-to-r from-transparent via-primary/50 to-transparent"></div>
-                <div class="size-10 bg-primary text-white rounded shadow-xl flex items-center justify-center transform -translate-y-1 rotate-3 group-hover:scale-110 transition-transform duration-500 z-10">
-                  <span class="material-symbols-outlined text-lg">touch_app</span>
-                </div>
-                <div class="absolute left-[4.5rem] w-12 h-[1px] bg-primary/20 -z-10 group-hover:w-20 transition-all duration-500"></div>
-                <div class="absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-white dark:from-[#2a241e] to-transparent z-20"></div>
-              </div>
-              <h3 class="text-xl font-serif font-bold mb-3 text-charcoal dark:text-white">Tactile Interaction</h3>
-              <p class="text-khaki dark:text-sand/70">Drag and drop with satisfying physics and weight. Every interaction feels deliberate and grounded.</p>
-            </div>
-            <div class="group p-8 rounded-2xl bg-white dark:bg-[#2a241e] border border-transparent hover:border-sand transition-all duration-300 shadow-sm hover:shadow-md">
-              <div class="h-16 mb-4 flex items-center w-full">
-                <div class="relative w-full max-w-[160px] h-8 flex items-center justify-between">
-                  <div class="size-3 rounded-full bg-charcoal dark:bg-sand z-10 group-hover:ring-4 ring-primary/10 transition-all"></div>
-                  <div class="absolute inset-0 flex items-center px-1">
-                    <div class="h-0.5 w-full bg-sand/50 dark:bg-white/10">
-                      <div class="h-full w-2/3 bg-primary rounded-full relative group-hover:w-full transition-all duration-1000 ease-out">
-                        <div class="absolute right-0 top-1/2 -translate-y-1/2 size-2 bg-primary blur-[2px] opacity-80"></div>
-                      </div>
-                    </div>
-                  </div>
-                  <div class="size-3 rounded-full border-2 border-dashed border-primary z-10 bg-white dark:bg-[#2a241e]"></div>
-                </div>
-              </div>
-              <h3 class="text-xl font-serif font-bold mb-3 text-charcoal dark:text-white">Smart Connectors</h3>
-              <p class="text-khaki dark:text-sand/70">AI that anticipates your next move and suggests connections before you even think of them.</p>
-            </div>
-            <div class="group p-8 rounded-2xl bg-white dark:bg-[#2a241e] border border-transparent hover:border-sand transition-all duration-300 shadow-sm hover:shadow-md">
-              <div class="h-16 mb-4 flex items-end gap-1.5">
-                <div class="w-6 h-8 bg-sand/30 dark:bg-white/10 rounded-sm"></div>
-                <div class="w-6 h-10 bg-sand/30 dark:bg-white/10 rounded-sm"></div>
-                <div class="w-6 h-12 bg-primary/20 border border-primary rounded-sm shadow-lg mb-2 backdrop-blur-sm group-hover:-translate-y-1 transition-transform duration-500"></div>
-                <div class="w-6 h-9 bg-sand/30 dark:bg-white/10 rounded-sm"></div>
-                <div class="w-6 h-7 bg-sand/30 dark:bg-white/10 rounded-sm"></div>
-              </div>
-              <h3 class="text-xl font-serif font-bold mb-3 text-charcoal dark:text-white">Fluid Layouts</h3>
-              <p class="text-khaki dark:text-sand/70">Canvases that automatically organize for readability, keeping your mind clear for creativity.</p>
-            </div>
+            <FeatureCard
+              v-for="feature in FEATURES_DATA"
+              :key="feature.title"
+              :type="feature.icon === 'touch_app' ? 'tactile' : feature.icon === 'hub' ? 'connectors' : 'layouts'"
+              :icon="feature.icon"
+              :title="feature.title"
+              :description="feature.description"
+            />
           </div>
         </div>
       </section>
@@ -236,38 +155,38 @@
       <section class="py-24 px-6 lg:px-20 bg-white dark:bg-[#1e1711]">
         <div class="mx-auto max-w-[1400px]">
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-y-16 gap-x-8">
-            <div class="flex flex-col gap-6 group cursor-pointer">
+            <div class="flex flex-col gap-6 group cursor-pointer animate-scale-in delay-100 hover-enhanced">
               <!-- ... images kept same ... -->
                <div class="overflow-hidden rounded-xl aspect-[4/5] relative">
                 <div class="w-full h-full bg-center bg-cover transition-transform duration-700 group-hover:scale-105" data-alt="Abstract visualization of data logic streams in soft cream colors" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCHvcaMNXE_RQ0VTo91N8LoDvPHVVn53yITCzCylVgceNw62erRGtcViEb6cg5aPKQsGlE7EyhzyiZnTwtvSkgBfquZoChmNOVts6ar2rXzjrj2IqvwgrZ_Scw2XGNAshg-OCIjCqA4wt5dxD1ebUDfWSgHae8eSq2n7deOksVPKR_OkjV9jQVcQkNGxI4yZUe9biItBIXbL_PCGh947mN1-FX5jUsbmmRsj8ZvK6uIlTpyAn3rzYLWHG9nqIcLL_W7vjS4Xbhdan8');"></div>
                 <div class="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-500"></div>
               </div>
               <div>
-                <span class="text-xs font-bold tracking-widest uppercase text-primary mb-2 block">Workflow</span>
-                <h3 class="text-2xl font-serif font-medium text-charcoal dark:text-white mb-2 group-hover:text-primary transition-colors">Visual Logic</h3>
-                <p class="text-khaki dark:text-sand/70 leading-relaxed">See how your data moves through the system with unparalleled clarity.</p>
+                <span class="text-xs font-bold tracking-[0.15em] uppercase text-primary mb-3 block">工作流</span>
+                <h3 class="text-2xl font-serif font-medium leading-snug tracking-tight text-charcoal dark:text-white mb-3 group-hover:text-primary transition-colors">清晰可见</h3>
+                <p class="text-khaki dark:text-sand/70 leading-loose tracking-wide">数据流动、逻辑处理，一目了然。无需深究代码，可视化呈现一切。</p>
               </div>
             </div>
-            <div class="flex flex-col gap-6 group cursor-pointer lg:translate-y-16">
+            <div class="flex flex-col gap-6 group cursor-pointer lg:translate-y-16 animate-scale-in delay-200 hover-enhanced">
                <div class="overflow-hidden rounded-xl aspect-[4/5] relative">
                 <div class="w-full h-full bg-center bg-cover transition-transform duration-700 group-hover:scale-105" data-alt="Minimalist desk setup with tablet showing workflow diagrams" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBEtnTBcV4dZiNvNOyfsb2RYvLkEA9_KmhL4VyrrjVMjQqjAOmER7GdWPLXMxLSvDUenlHS3OyZtZ5PWtdEYFWHSZ6Hx8nDW2MiFKK-MKUeRiqR_c_-iBEdzI-1va0kxRictMG84EcYpY3OirY-4BO4gQ8aJ9pKCXDOp3LJxbp_P5RJFDJvtCkBVbAOBPE5sROnYknA9EwYgD626avbVGYalzSrPD4zaGMp5pP9dutDnTdFm6eWHic2ZxYCCVVIx9TVjB60Dks1Mx8');"></div>
                 <div class="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-500"></div>
               </div>
               <div>
-                <span class="text-xs font-bold tracking-widest uppercase text-primary mb-2 block">Connectivity</span>
-                <h3 class="text-2xl font-serif font-medium text-charcoal dark:text-white mb-2 group-hover:text-primary transition-colors">Data Streams</h3>
-                <p class="text-khaki dark:text-sand/70 leading-relaxed">Connect sources effortlessly with visual cues that guide your hand.</p>
+                <span class="text-xs font-bold tracking-[0.15em] uppercase text-primary mb-3 block">连接性</span>
+                <h3 class="text-2xl font-serif font-medium leading-snug tracking-tight text-charcoal dark:text-white mb-3 group-hover:text-primary transition-colors">融会贯通</h3>
+                <p class="text-khaki dark:text-sand/70 leading-loose tracking-wide">各类数据源、API，拖拽即连。无需编码，集成自如。</p>
               </div>
             </div>
-            <div class="flex flex-col gap-6 group cursor-pointer">
+            <div class="flex flex-col gap-6 group cursor-pointer animate-scale-in delay-300 hover-enhanced">
                <div class="overflow-hidden rounded-xl aspect-[4/5] relative">
                 <div class="w-full h-full bg-center bg-cover transition-transform duration-700 group-hover:scale-105" data-alt="Artistic rendering of digital output generation" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDBr4c9zNlWwNVVBefmsEyooTEQorzqVc2VroBG8yddXffVqS21LDdIftlpkaWpGO1zFVBdXJsu2Tv1IdWKLAB-TLgy0aLfgGj4OD2vZuTWa0WWAlp4MSZ5mZOL9ZubLh85Hzhl79HyoU-0aJIJ1-Y_CvULHJgEnVLbTrJs-tIYbop0YG517qtHfGMlNGzA0nwY7ihlgu4bwW1s3DI-lLkHg0UqrvCZtQeM2gD-1_ORUx8cMcHUj9mac3rO4ww-ued-BWNqmbtr7yU');"></div>
                 <div class="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-500"></div>
               </div>
               <div>
-                <span class="text-xs font-bold tracking-widest uppercase text-primary mb-2 block">Result</span>
-                <h3 class="text-2xl font-serif font-medium text-charcoal dark:text-white mb-2 group-hover:text-primary transition-colors">Output Artistry</h3>
-                <p class="text-khaki dark:text-sand/70 leading-relaxed">Generate beautiful reports that look designed by a human hand.</p>
+                <span class="text-xs font-bold tracking-[0.15em] uppercase text-primary mb-3 block">结果</span>
+                <h3 class="text-2xl font-serif font-medium leading-snug tracking-tight text-charcoal dark:text-white mb-3 group-hover:text-primary transition-colors">精美呈现</h3>
+                <p class="text-khaki dark:text-sand/70 leading-loose tracking-wide">生成的报表与看板，专业而优雅。直接分享，无需修饰。</p>
               </div>
             </div>
           </div>
@@ -276,99 +195,41 @@
 
       <section class="py-32 px-6 lg:px-20 bg-background-light dark:bg-background-dark relative overflow-hidden">
         <div class="absolute right-0 top-0 w-1/3 h-full bg-sand/10 dark:bg-white/5 -skew-x-12 translate-x-1/2"></div>
-        <div class="mx-auto max-w-[960px] text-center relative z-10">
-          <h2 class="font-serif text-5xl lg:text-7xl font-medium mb-8 text-charcoal dark:text-white tracking-tight">
-            Ready to design <br/>your future?
+        <div class="mx-auto max-w-[960px] text-center relative z-10 animate-on-scroll">
+          <h2 class="font-serif text-5xl lg:text-7xl font-medium leading-tight tracking-tight mb-10 text-charcoal dark:text-white">
+            开启你的<br/>创作之旅
           </h2>
-          <p class="text-lg lg:text-xl text-khaki dark:text-sand/80 mb-12 max-w-2xl mx-auto font-light">
-            Join thousands of creators who have switched to a workflow that respects their design sensibilities.
+          <p class="text-lg lg:text-xl text-khaki dark:text-sand/80 mb-14 max-w-2xl mx-auto font-normal leading-loose tracking-wide">
+            十万创作者的选择，现在加入也不迟
           </p>
           <div class="flex flex-col sm:flex-row justify-center gap-4">
-            <router-link to="/app" class="flex min-w-[160px] cursor-pointer items-center justify-center rounded-full h-14 px-8 bg-primary hover:bg-primary/90 text-white text-lg font-bold transition-all shadow-lg hover:shadow-primary/30">
-              Get Started
+            <router-link to="/dashboard" class="flex min-w-[160px] cursor-pointer items-center justify-center rounded-full h-14 px-8 bg-primary hover:bg-primary/90 text-white text-lg font-bold transition-all shadow-lg hover:shadow-primary/30 tracking-wide">
+              开始探索
             </router-link>
-            <button class="flex min-w-[160px] cursor-pointer items-center justify-center rounded-full h-14 px-8 bg-white border border-sand text-charcoal hover:bg-sand/20 font-medium transition-colors">
-              View Pricing
+            <button class="flex min-w-[160px] cursor-pointer items-center justify-center rounded-full h-14 px-8 bg-white border border-sand text-charcoal hover:bg-sand/20 font-medium transition-colors tracking-wide">
+              观看演示
             </button>
           </div>
         </div>
       </section>
     </main>
-    <footer id="footer" class="bg-charcoal text-sand py-16 px-6 lg:px-20 border-t border-white/10">
-      <div class="mx-auto max-w-[1400px]">
-        <div class="flex flex-col md:flex-row justify-between items-start gap-12">
-          <div class="flex flex-col gap-6 max-w-sm">
-            <div class="flex items-center gap-4 text-white">
-              <div class="size-8 text-primary">
-                <svg class="w-full h-full" fill="none" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
-                  <path clip-rule="evenodd" d="M24 4H6V17.3333V30.6667H24V44H42V30.6667V17.3333H24V4Z" fill="currentColor" fill-rule="evenodd"></path>
-                </svg>
-              </div>
-              <h2 class="text-xl font-serif font-bold tracking-tight">Aether Flow</h2>
-            </div>
-            <p class="text-sand/60 font-light">
-              A minimal approach to maximum complexity. Designing the future of workflow automation, one node at a time.
-            </p>
-          </div>
-          <div class="grid grid-cols-2 md:grid-cols-4 gap-12 w-full md:w-auto">
-            <div class="flex flex-col gap-4">
-              <h4 class="text-white font-bold text-sm uppercase tracking-wider">Product</h4>
-              <a class="text-sand/60 hover:text-primary transition-colors" href="#features" @click.prevent="scrollToSection('features')">Features</a>
-              <a class="text-sand/60 hover:text-primary transition-colors" href="#">Workflow</a>
-              <a class="text-sand/60 hover:text-primary transition-colors" href="#">Pricing</a>
-            </div>
-            <div class="flex flex-col gap-4">
-              <h4 class="text-white font-bold text-sm uppercase tracking-wider">Company</h4>
-              <a class="text-sand/60 hover:text-primary transition-colors" href="#stats" @click.prevent="scrollToSection('stats')">About</a>
-              <a class="text-sand/60 hover:text-primary transition-colors" href="#manifesto" @click.prevent="scrollToSection('manifesto')">Manifesto</a>
-              <a class="text-sand/60 hover:text-primary transition-colors" href="#">Careers</a>
-            </div>
-            <div class="flex flex-col gap-4">
-              <h4 class="text-white font-bold text-sm uppercase tracking-wider">Resources</h4>
-              <a class="text-sand/60 hover:text-primary transition-colors" href="#footer" @click.prevent="scrollToSection('footer')">Journal</a>
-              <a class="text-sand/60 hover:text-primary transition-colors" href="#">Help Center</a>
-              <a class="text-sand/60 hover:text-primary transition-colors" href="#">Community</a>
-            </div>
-            <div class="flex flex-col gap-4">
-              <h4 class="text-white font-bold text-sm uppercase tracking-wider">Social</h4>
-              <a class="text-sand/60 hover:text-primary transition-colors" href="#">Twitter</a>
-              <a class="text-sand/60 hover:text-primary transition-colors" href="#">Instagram</a>
-              <a class="text-sand/60 hover:text-primary transition-colors" href="#">LinkedIn</a>
-            </div>
-          </div>
-        </div>
-        <div class="mt-16 pt-8 border-t border-white/10 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-sand/40">
-          <p>© 2024 Aether Flow Inc. All rights reserved.</p>
-          <div class="flex gap-8">
-            <a class="hover:text-sand transition-colors" href="#">Privacy Policy</a>
-            <a class="hover:text-sand transition-colors" href="#">Terms of Service</a>
-          </div>
-        </div>
-      </div>
-    </footer>
+    <AppFooter />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { onMounted } from 'vue'
+import AppHeader from '@/components/layout/AppHeader.vue'
+import AppFooter from '@/components/layout/AppFooter.vue'
+import FeatureCard from '@/components/FeatureCard.vue'
+import { FEATURES_DATA, STATS_DATA } from '@/config/navigation'
+import { useScrollAnimations } from '@/composables/useScrollAnimations'
 
-const isMenuOpen = ref(false)
+// 启用滚动动画
+useScrollAnimations()
 
-const toggleMenu = () => {
-  isMenuOpen.value = !isMenuOpen.value
-}
-
-const scrollToSection = (id: string, closeMenu = false) => {
-  const element = document.getElementById(id)
-  if (element) {
-    element.scrollIntoView({ behavior: 'smooth' })
-    if (closeMenu) {
-      isMenuOpen.value = false
-    }
-  }
-}
-
-const scrollToTop = () => {
-  window.scrollTo({ top: 0, behavior: 'smooth' })
-}
+onMounted(() => {
+  // 页面加载时的初始动画
+  document.body.classList.add('page-loaded')
+})
 </script>
