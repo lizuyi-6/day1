@@ -8,12 +8,19 @@ export default {
     theme: {
         extend: {
             colors: {
-                "primary": "#e68019",
-                "background-light": "#f8f7f6",
-                "background-dark": "#211911",
-                "sand": "#e5e0dc",
-                "khaki": "#887563",
-                "charcoal": "#181411",
+                "primary": "var(--color-primary)",
+                "background-light": "var(--bg-app)",
+                "background-dark": "var(--bg-panel)", // Using panel bg for dark mode equivalent or generic dark
+                "sand": "var(--bg-hover)",
+                "khaki": "var(--text-tertiary)",
+                "charcoal": "var(--text-main)",
+                "cycle": {
+                    1: "var(--color-cycle-1)",
+                    2: "var(--color-cycle-2)",
+                    3: "var(--color-cycle-3)",
+                    4: "var(--color-cycle-4)",
+                    5: "var(--color-cycle-5)",
+                }
             },
             fontFamily: {
                 "display": ["Manrope", "sans-serif"],

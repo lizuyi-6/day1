@@ -1,13 +1,17 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, Like } from 'typeorm';
 import { RecursiveCharacterTextSplitter } from '@langchain/textsplitters';
 import { OpenAIEmbeddings } from '@langchain/openai';
 import { Knowledge } from './entities/knowledge.entity';
 
+// @ts-ignore
+const pdf = require('pdf-parse');
+
 @Injectable()
 export class KnowledgeService {
   private embeddings: OpenAIEmbeddings;
+  private readonly logger = new Logger(KnowledgeService.name);
 
   constructor(
     @InjectRepository(Knowledge)
@@ -39,7 +43,27 @@ export class KnowledgeService {
   }
 
   async processDocument(file: Express.Multer.File) {
-    const text = file.buffer.toString('utf-8'); // Simple TXT support for now
+    let text: string;
+
+    // 根据文件类型提取文本
+    if (file.mimetype === 'application/pdf') {
+      try {
+        const data = await pdf(file.buffer);
+        text = data.text;
+        this.logger.log(`Extracted ${text.length} characters from PDF: ${file.originalname}`);
+      } catch (error) {
+        this.logger.error(`PDF parsing failed: ${error.message}`);
+        throw new Error(`Failed to parse PDF file: ${error.message}`);
+      }
+    } else {
+      // 默认文本处理 (TXT, MD)
+      text = file.buffer.toString('utf-8');
+    }
+
+    // 验证文本不为空
+    if (!text || text.trim().length < 10) {
+      throw new Error('Document content is too short or empty');
+    }
 
     // 1. Chunking
     const splitter = new RecursiveCharacterTextSplitter({
@@ -135,5 +159,66 @@ export class KnowledgeService {
         .limit(safeTopK)
         .getMany();
     }
+  }
+
+  async getDocuments(page: number = 1, limit: number = 20, fileName?: string) {
+    const skip = (page - 1) * limit;
+
+    const where: any = {};
+    if (fileName) {
+      where.fileName = Like(`%${fileName}%`);
+    }
+
+    const [documents, total] = await this.knowledgeRepository.findAndCount({
+      where,
+      order: { createdAt: 'DESC' },
+      skip,
+      take: limit,
+    });
+
+    // 按文件名分组统计
+    const grouped = documents.reduce((acc, doc) => {
+      if (!acc[doc.fileName]) {
+        acc[doc.fileName] = [];
+      }
+      acc[doc.fileName].push(doc);
+      return acc;
+    }, {} as Record<string, Knowledge[]>);
+
+    const items = Object.entries(grouped).map(([fileName, chunks]) => ({
+      fileName,
+      chunkCount: chunks.length,
+      firstChunkId: chunks[0].id,
+      uploadedAt: chunks[0].createdAt,
+    }));
+
+    return {
+      items,
+      total: Object.keys(grouped).length,
+      page,
+      limit,
+      totalPages: Math.ceil(Object.keys(grouped).length / limit),
+    };
+  }
+
+  async deleteDocuments(fileName: string) {
+    // 查找该文件的所有 chunks
+    const chunks = await this.knowledgeRepository.find({
+      where: { fileName },
+    });
+
+    if (chunks.length === 0) {
+      throw new NotFoundException(`Document "${fileName}" not found`);
+    }
+
+    // 删除所有 chunks
+    const result = await this.knowledgeRepository.remove(chunks);
+
+    this.logger.log(`Deleted ${result.length} chunks for file "${fileName}"`);
+
+    return {
+      fileName,
+      deletedChunks: result.length,
+    };
   }
 }

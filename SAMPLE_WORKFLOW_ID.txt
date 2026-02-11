@@ -1,0 +1,8 @@
+工作流ID: 3a514ee1-f178-451e-8a7e-84d7de8fdfef
+名称: 示例工作流 - AI智能助手
+创建时间: 2026-02-08T16:42:15.030Z
+
+查看方式:
+1. 访问前端: http://localhost:5173/workflow
+2. 使用ID查询: 3a514ee1-f178-451e-8a7e-84d7de8fdfef
+3. 或查看文件: X:/day1/SAMPLE_WORKFLOW.json

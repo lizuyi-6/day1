@@ -7,6 +7,7 @@ import { StartNode } from '../nodes/start.node';
 import { EndNode } from '../nodes/end.node';
 import { DelayNode } from '../nodes/delay.node';
 import { LlmNode } from '../nodes/llm.node';
+import { KnowledgeNode } from '../nodes/knowledge.node';
 import { WorkflowGateway } from '../workflow.gateway';
 
 import { LRUCache } from 'lru-cache';
@@ -74,11 +75,13 @@ export class WorkflowRunner {
     const endNode = await this.moduleRef.resolve(EndNode);
     const delayNode = await this.moduleRef.resolve(DelayNode);
     const llmNode = await this.moduleRef.resolve(LlmNode);
+    const knowledgeNode = await this.moduleRef.resolve(KnowledgeNode);
 
     this.registerNode(startNode);
     this.registerNode(endNode);
     this.registerNode(delayNode);
     this.registerNode(llmNode);
+    this.registerNode(knowledgeNode);
 
     this.logger.log(
       'Node registry initialized with types: ' +

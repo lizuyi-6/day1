@@ -3,7 +3,7 @@ import { ref, nextTick, onMounted } from 'vue';
 import { API_BASE_URL } from '@/config/api';
 import { post, get, del } from '@/utils/api';
 import { workflowService } from '@/services/workflowService';
-import { Send, Bot, User, Cpu, Sparkles, MessageSquare, LayoutGrid, Workflow, Database, Trash2, CheckSquare, Square, X } from 'lucide-vue-next';
+import { Send, Bot, User, Cpu, Sparkles, MessageSquare, LayoutGrid, Workflow, Database, Trash2, CheckSquare, Square, X, Eraser, EyeOff } from 'lucide-vue-next';
 import Logo from '@/components/layout/Logo.vue';
 import { RouterLink, useRoute } from 'vue-router';
 import { useScrollAnimations } from '@/composables/useScrollAnimations';
@@ -20,6 +20,7 @@ interface Message {
   role: 'user' | 'assistant' | 'system'
   content: string
   timestamp: number
+  hiddenFromAI?: boolean  // 标记这条消息对AI不可见
 }
 
 interface Agent {
@@ -30,13 +31,15 @@ interface Agent {
 }
 
 const input = ref('')
-const messages = ref<Message[]>([
-  {
-    role: 'system',
-    content: '请从左侧选择一个助手（工作流）开始对话。',
-    timestamp: Date.now()
-  }
-])
+// 为每个工作流分别存储历史记录
+const chatHistory = ref<Map<string, Message[]>>(new Map())
+// 初始欢迎消息
+const initialMessage: Message = {
+  role: 'system',
+  content: '请从左侧选择一个助手（工作流）开始对话。',
+  timestamp: Date.now()
+}
+const messages = ref<Message[]>([initialMessage])
 const loading = ref(false)
 const chatContainer = ref<HTMLElement | null>(null)
 const agents = ref<Agent[]>([])
@@ -172,15 +175,36 @@ const deleteSelectedAgents = async () => {
 }
 
 const selectAgent = async (id: string) => {
+    console.log('%c🎯 =======================================', 'color: cyan; font-size: 16px; font-weight: bold')
+    console.log('%c🎯 selectAgent 被调用!', 'color: cyan; font-size: 16px; font-weight: bold')
+    console.log('%c🎯 =======================================', 'color: cyan; font-size: 16px; font-weight: bold')
+    console.log('🎯 选择的 Agent ID:', id)
+
+    // 保存当前工作流的历史记录（只保存用户和AI的对话，不保存任何系统消息）
+    if (activeAgentId.value && messages.value.length > 0) {
+        // 过滤掉所有系统消息，只保留用户和AI的实际对话
+        const conversationMessages = messages.value.filter(msg => msg.role !== 'system')
+
+        // 只在有实际对话内容时才保存
+        if (conversationMessages.length > 0) {
+            chatHistory.value.set(activeAgentId.value, conversationMessages)
+        }
+    }
+
     activeAgentId.value = id
     try {
         // Use workflowService to fetch specific workflow details
+        console.log('📡 正在调用 fetchWorkflow:', id)
         const result = await workflowService.fetchWorkflow(id);
-        
+        console.log('📥 fetchWorkflow 返回结果:', result)
+        console.log('📥 result.workflow:', result.workflow)
+
         if (result.success && result.workflow) {
+            console.log('✅ Workflow fetch 成功!')
             // Adapt the workflow object structure if needed
             activeAgent.value = result.workflow
-            
+            console.log('📦 设置后的 activeAgent.value:', activeAgent.value)
+
             // If the workflow object doesn't have a name property at the top level (it might be inside data), use the one from the agents list
             if (!activeAgent.value.name) {
                 const agentInfo = agents.value.find(a => a.id === id);
@@ -188,30 +212,134 @@ const selectAgent = async (id: string) => {
                     activeAgent.value.name = agentInfo.name;
                 }
             }
-            
-            messages.value = [
-                {
-                    role: 'system',
-                    content: `已切换至助手: ${activeAgent.value.name || '未命名助手'}。准备就绪。`,
-                    timestamp: Date.now()
+
+            // 加载该工作流的历史记录
+            console.log('📚 正在加载历史记录... ID:', id)
+            const history = chatHistory.value.get(id)
+            console.log('📚 找到的历史记录:', history)
+
+            if (history && history.length > 0) {
+                // 如果有历史记录，直接加载
+                console.log('✅ 使用历史记录')
+                messages.value = history
+            } else {
+                console.log('🔍 没有历史记录，准备提取欢迎语...')
+                // 如果没有历史记录，检查是否有LLM欢迎语
+                console.log('🔍 调用 extractWelcomeMessage 前，activeAgent.value:', activeAgent.value)
+                const welcomeMessage = extractWelcomeMessage(activeAgent.value)
+                console.log('🔍 调用 extractWelcomeMessage 后，返回的 welcomeMessage:', welcomeMessage)
+
+                if (welcomeMessage && welcomeMessage.trim()) {
+                    messages.value = [{
+                        role: 'system',
+                        content: welcomeMessage,
+                        timestamp: Date.now()
+                    }]
+                } else {
+                    // 如果没有欢迎语，清空消息列表
+                    messages.value = []
                 }
-            ]
+            }
         } else {
             console.error('Failed to fetch workflow details:', result.error)
-            messages.value.push({
+            messages.value = [{
                 role: 'system',
                 content: `错误: 无法加载助手详情 (${result.error || '未知错误'})`,
                 timestamp: Date.now()
-            })
+            }]
         }
     } catch (e) {
         console.error('Error selecting agent:', e)
-        messages.value.push({
+        messages.value = [{
             role: 'system',
             content: '加载助手失败，请重试。',
             timestamp: Date.now()
-        })
+        }]
     }
+}
+
+// 从工作流配置中提取LLM节点的欢迎语
+const extractWelcomeMessage = (workflow: any): string | null => {
+    console.log('=== 欢迎语提取 ===')
+    console.log('工作流对象:', workflow)
+    console.log('graphData:', workflow?.graphData)
+
+    if (!workflow?.graphData?.nodes) {
+        console.log('❌ 没有graphData或nodes')
+        return null
+    }
+
+    console.log('所有节点:', workflow.graphData.nodes)
+
+    // 查找LLM节点
+    const llmNode = workflow.graphData.nodes.find((node: any) => node.type === 'llm')
+    console.log('找到的LLM节点:', llmNode)
+
+    if (!llmNode) {
+        console.log('❌ 没有找到LLM节点')
+        return null
+    }
+
+    if (!llmNode?.data) {
+        console.log('❌ LLM节点没有data')
+        return null
+    }
+
+    console.log('LLM节点data:', llmNode.data)
+
+    // 返回欢迎语配置
+    const welcomeMsg = llmNode.data.welcomeMessage || null
+    console.log('提取的welcomeMessage:', welcomeMsg)
+
+    if (welcomeMsg && welcomeMsg.trim()) {
+        console.log(`%c✅ 找到欢迎语: ${welcomeMsg}`, 'color: green; font-weight: bold')
+    } else {
+        console.log('❌ 欢迎语为空或未设置')
+    }
+
+    return welcomeMsg
+}
+
+// 清除当前工作流的历史记录
+const clearHistory = () => {
+  if (!activeAgentId.value) {
+    alert('请先选择一个工作流')
+    return
+  }
+
+  if (!confirm(`确定要清除"${activeAgent.value?.name || '当前工作流'}"的所有历史记录吗？此操作不可撤销。`)) {
+    return
+  }
+
+  // 清空消息列表
+  messages.value = []
+
+  // 清除该工作流的历史记录
+  chatHistory.value.delete(activeAgentId.value)
+}
+
+// 隐藏当前工作流的上下文（对AI不可见）
+const hideContextFromAI = () => {
+  if (!activeAgentId.value) {
+    alert('请先选择一个工作流')
+    return
+  }
+
+  if (!confirm(`确定要将"${activeAgent.value?.name || '当前工作流'}"的历史记录对AI隐藏吗？AI将看不到之前的对话内容。`)) {
+    return
+  }
+
+  // 标记当前工作流中所有非system消息为对AI不可见
+  messages.value = messages.value.map(msg => {
+    if (msg.role !== 'system') {
+      return { ...msg, hiddenFromAI: true }
+    }
+    return msg
+  })
+
+  // 保存到历史记录（只保存用户和AI的消息，包含hiddenFromAI标记）
+  const conversationMessages = messages.value.filter(msg => msg.role !== 'system')
+  chatHistory.value.set(activeAgentId.value, conversationMessages)
 }
 
 const scrollToBottom = async () => {
@@ -249,6 +377,7 @@ const sendMessage = async () => {
     content: userMsg,
     timestamp: Date.now()
   })
+
   input.value = ''
   loading.value = true
   await scrollToBottom()
@@ -266,7 +395,7 @@ const sendMessage = async () => {
             inputVar = startNode.data.inputs[0].name;
         }
     }
-    
+
     // Construct payload with fallback aliases to ensure compatibility
     const payload: Record<string, any> = { [inputVar]: userMsg };
     if (inputVar !== 'userInput') payload['userInput'] = userMsg;
@@ -281,27 +410,30 @@ const sendMessage = async () => {
       // result is nodeOutputs: { 'node-id': { output_1: 'text', response: 'text', ... }, ... }
       let outputText = '';
 
-      // Try to find the last executed node's output
+      // Try to find LLM node output by checking all nodes
       const nodeIds = Object.keys(result);
-      if (nodeIds.length > 0) {
-        // Get the last node's output
-        const lastNodeId = nodeIds[nodeIds.length - 1];
-        const lastNodeOutput = result[lastNodeId];
 
-        // Extract text from common output fields
-        if (lastNodeOutput) {
-          outputText = lastNodeOutput.result ||          // Standard result field
-                       lastNodeOutput.output_1 ||         // LLM node output_1
-                       lastNodeOutput.response ||         // LLM node response
-                       lastNodeOutput.text ||            // Generic text field
-                       lastNodeOutput.output ||          // Generic output field
-                       JSON.stringify(lastNodeOutput);   // Fallback
+      for (const nodeId of nodeIds) {
+        const nodeOutput = result[nodeId];
+        if (!nodeOutput) continue;
+
+        // Look for meaningful text content in priority order
+        const text = nodeOutput.result ||          // Primary result field
+                     nodeOutput.response ||         // LLM response field
+                     nodeOutput.text ||            // Generic text field
+                     nodeOutput.output_1 ||        // Output field
+                     nodeOutput.output;            // Alternative output field
+
+        // Check if this is actual text content (not empty, not object)
+        if (text && typeof text === 'string' && text.trim().length > 0) {
+          outputText = text;
+          break; // Found the LLM output, stop searching
         }
       }
 
-      // If still no text, stringify the entire result
+      // If still no text found, stringify the entire result for debugging
       if (!outputText) {
-        outputText = JSON.stringify(result);
+        outputText = JSON.stringify(result, null, 2);
       }
 
       loading.value = false;
@@ -317,6 +449,13 @@ const sendMessage = async () => {
         timestamp: Date.now()
     })
   }
+
+  // AI回复后或出错后，保存对话到历史记录（只保存用户和AI的对话）
+  if (activeAgentId.value) {
+    const conversationMessages = messages.value.filter(msg => msg.role !== 'system')
+    chatHistory.value.set(activeAgentId.value, conversationMessages)
+  }
+
   await scrollToBottom()
 }
 </script>
@@ -352,7 +491,7 @@ const sendMessage = async () => {
       <!-- Sidebar -->
       <aside class="w-72 bg-white/50 dark:bg-[#2a241e]/50 backdrop-blur-sm border-r border-sand/30 dark:border-white/10 flex flex-col hidden md:flex z-10">
         <div class="p-5 border-b border-sand/30 dark:border-white/10">
-          <div class="flex items-center justify-between">
+          <div class="flex items-center justify-between mb-3">
             <h2 class="text-xs font-bold text-khaki uppercase tracking-[0.2em]">活跃助手 (工作流)</h2>
             <button
               @click="toggleManageMode"
@@ -360,6 +499,26 @@ const sendMessage = async () => {
               :class="isManageMode ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400' : 'bg-sand/20 dark:bg-white/10 text-khaki hover:text-primary'"
             >
               {{ isManageMode ? '退出管理' : '管理' }}
+            </button>
+          </div>
+
+          <!-- 上下文控制按钮 -->
+          <div v-if="!isManageMode" class="flex items-center gap-2">
+            <button
+              @click="clearHistory"
+              class="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 bg-sand/20 dark:bg-white/10 hover:bg-red-100 dark:hover:bg-red-900/20 text-khaki dark:text-sand/70 hover:text-red-600 dark:hover:text-red-400 text-[10px] rounded-md transition-colors"
+              title="清除所有历史记录"
+            >
+              <Eraser :size="12" />
+              清除历史
+            </button>
+            <button
+              @click="hideContextFromAI"
+              class="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 bg-sand/20 dark:bg-white/10 hover:bg-blue-100 dark:hover:bg-blue-900/20 text-khaki dark:text-sand/70 hover:text-blue-600 dark:hover:text-blue-400 text-[10px] rounded-md transition-colors"
+              title="隐藏历史记录（AI看不到）"
+            >
+              <EyeOff :size="12" />
+              隐藏上下文
             </button>
           </div>
         </div>
@@ -394,7 +553,7 @@ const sendMessage = async () => {
         <div class="p-3 space-y-2 overflow-y-auto">
           <!-- Dynamic Agent List -->
           <div
-            v-for="agent in agents"
+            v-for="(agent, index) in agents"
             :key="agent.id"
             @click="isManageMode ? toggleAgentSelection(agent.id) : selectAgent(agent.id)"
             class="flex items-center gap-3 p-3 rounded-xl border shadow-sm cursor-pointer group transition-all hover:shadow-md"
@@ -417,7 +576,10 @@ const sendMessage = async () => {
             </div>
 
             <div class="relative">
-              <div class="size-10 rounded-full bg-primary/10 flex items-center justify-center text-primary group-hover:scale-105 transition-transform">
+              <div 
+                class="size-10 rounded-full flex items-center justify-center text-white group-hover:scale-105 transition-transform"
+                :class="`bg-cycle-${(index % 5) + 1}`"
+              >
                   <Bot :size="20" />
               </div>
               <span v-if="activeAgentId === agent.id && !isManageMode" class="absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full bg-primary border-2 border-white dark:border-[#2a241e]"></span>
@@ -464,6 +626,9 @@ const sendMessage = async () => {
                       <span class="text-[10px] font-bold text-khaki uppercase tracking-wider">
                           {{ msg.role === 'assistant' ? 'Aether' : msg.role }}
                       </span>
+                      <span v-if="msg.hiddenFromAI" class="text-[9px] px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-md font-medium">
+                          对AI隐藏
+                      </span>
                   </div>
 
                   <div
@@ -473,7 +638,8 @@ const sendMessage = async () => {
                               ? 'bg-charcoal dark:bg-sand text-white dark:text-charcoal rounded-2xl rounded-tr-sm'
                               : msg.role === 'system'
                                   ? 'bg-transparent border border-dashed border-sand/50 text-khaki font-mono text-xs py-2 shadow-none'
-                                  : 'bg-white dark:bg-[#2a241e] border border-sand/30 dark:border-white/10 text-charcoal dark:text-sand/90 rounded-2xl rounded-tl-sm'
+                                  : 'bg-white dark:bg-[#2a241e] border border-sand/30 dark:border-white/10 text-charcoal dark:text-sand/90 rounded-2xl rounded-tl-sm',
+                          msg.hiddenFromAI ? 'opacity-70' : ''
                       ]"
                   >
                       {{ msg.content }}

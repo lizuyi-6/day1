@@ -362,40 +362,40 @@ const nodeCategories = [
   {
     name: '基础',
     items: [
-      { type: 'start', label: '开始', icon: FileCode, color: 'text-emerald-600', bg: 'bg-emerald-100', border: 'border-emerald-200' },
-      { type: 'end', label: '结束', icon: FileCode, color: 'text-red-600', bg: 'bg-red-100', border: 'border-red-200' }
+      { type: 'start', label: '开始', icon: FileCode, color: 'text-cycle-1', bg: 'bg-cycle-1/10', border: 'border-cycle-1/20' },
+      { type: 'end', label: '结束', icon: FileCode, color: 'text-cycle-2', bg: 'bg-cycle-2/10', border: 'border-cycle-2/20' }
     ]
   },
   {
     name: 'AI',
     items: [
-      { type: 'llm', label: 'LLM', icon: Sparkles, color: 'text-primary', bg: 'bg-primary/10', border: 'border-primary/20', meta: 'GPT-4' }
+      { type: 'llm', label: 'LLM', icon: Sparkles, color: 'text-cycle-3', bg: 'bg-cycle-3/10', border: 'border-cycle-3/20', meta: 'GPT-4' }
     ]
   },
   {
     name: '逻辑',
     items: [
-      { type: 'condition', label: '条件', icon: GitBranch, color: 'text-blue-600', bg: 'bg-blue-100', border: 'border-blue-200' },
-      { type: 'code', label: '代码', icon: Code, color: 'text-orange-600', bg: 'bg-orange-100', border: 'border-orange-200' },
-      { type: 'loop', label: '循环', icon: Repeat, color: 'text-indigo-600', bg: 'bg-indigo-100', border: 'border-indigo-200' },
-      { type: 'filter', label: '过滤', icon: Filter, color: 'text-teal-600', bg: 'bg-teal-100', border: 'border-teal-200' }
+      { type: 'condition', label: '条件', icon: GitBranch, color: 'text-cycle-4', bg: 'bg-cycle-4/10', border: 'border-cycle-4/20' },
+      { type: 'code', label: '代码', icon: Code, color: 'text-cycle-5', bg: 'bg-cycle-5/10', border: 'border-cycle-5/20' },
+      { type: 'loop', label: '循环', icon: Repeat, color: 'text-cycle-1', bg: 'bg-cycle-1/10', border: 'border-cycle-1/20' },
+      { type: 'filter', label: '过滤', icon: Filter, color: 'text-cycle-2', bg: 'bg-cycle-2/10', border: 'border-cycle-2/20' }
     ]
   },
   {
     name: '数据',
     items: [
-      { type: 'knowledge', label: '知识库', icon: Database, color: 'text-purple-600', bg: 'bg-purple-100', border: 'border-purple-200' },
-      { type: 'http', label: 'HTTP请求', icon: Globe, color: 'text-cyan-600', bg: 'bg-cyan-100', border: 'border-cyan-200' },
-      { type: 'variable', label: '变量', icon: Variable, color: 'text-pink-600', bg: 'bg-pink-100', border: 'border-pink-200' },
-      { type: 'webhook', label: 'Webhook', icon: Webhook, color: 'text-violet-600', bg: 'bg-violet-100', border: 'border-violet-200' }
+      { type: 'knowledge', label: '知识库', icon: Database, color: 'text-cycle-3', bg: 'bg-cycle-3/10', border: 'border-cycle-3/20' },
+      { type: 'http', label: 'HTTP请求', icon: Globe, color: 'text-cycle-4', bg: 'bg-cycle-4/10', border: 'border-cycle-4/20' },
+      { type: 'variable', label: '变量', icon: Variable, color: 'text-cycle-5', bg: 'bg-cycle-5/10', border: 'border-cycle-5/20' },
+      { type: 'webhook', label: 'Webhook', icon: Webhook, color: 'text-cycle-1', bg: 'bg-cycle-1/10', border: 'border-cycle-1/20' }
     ]
   },
   {
     name: '工具',
     items: [
-      { type: 'delay', label: '延时', icon: Timer, color: 'text-amber-600', bg: 'bg-amber-100', border: 'border-amber-200' },
-      { type: 'notification', label: '通知', icon: Bell, color: 'text-rose-600', bg: 'bg-rose-100', border: 'border-rose-200' },
-      { type: 'email', label: '邮件', icon: Mail, color: 'text-sky-600', bg: 'bg-sky-100', border: 'border-sky-200' }
+      { type: 'delay', label: '延时', icon: Timer, color: 'text-cycle-2', bg: 'bg-cycle-2/10', border: 'border-cycle-2/20' },
+      { type: 'notification', label: '通知', icon: Bell, color: 'text-cycle-3', bg: 'bg-cycle-3/10', border: 'border-cycle-3/20' },
+      { type: 'email', label: '邮件', icon: Mail, color: 'text-cycle-4', bg: 'bg-cycle-4/10', border: 'border-cycle-4/20' }
     ]
   }
 ]
@@ -1193,10 +1193,10 @@ const loadWorkflow = async (workflowId: string, fitView?: any) => {
             console.log('📦 nodesCount:', graphData?.nodes?.length || 0, 'edgesCount:', graphData?.edges?.length || 0)
 
             // 只有在新建工作流且没有节点数据时才加载示例
-            if (isNewWorkflow.value && !hasNodes) {
-                console.log('🆕 新建空工作流，加载示例')
-                initializeExampleWorkflow()
-            } else {
+            // if (isNewWorkflow.value && !hasNodes) {
+            //     console.log('🆕 新建空工作流，加载示例')
+            //     initializeExampleWorkflow()
+            // } else {
                 // 清空当前状态
                 nodes.value = []
                 edges.value = []
@@ -1236,7 +1236,7 @@ const loadWorkflow = async (workflowId: string, fitView?: any) => {
                 } else {
                     console.warn('没有graphData，画布将保持空状态')
                 }
-            }
+            // }
         } else {
             console.error('  工作流加载失败:', result.error)
             showError('加载失败', result.error || '无法加载工作流')
@@ -1553,12 +1553,12 @@ onMounted(() => {
   window.addEventListener('resize', handleResize)
 
   const workflowId = (route.params.id as string);
-  if (!workflowId && nodes.value.length === 0) {
-    console.log('🚀 onMounted: 初始化示例工作流')
-    setTimeout(() => {
-      initializeExampleWorkflow()
-    }, 100)
-  }
+  // if (!workflowId && nodes.value.length === 0) {
+  //   console.log('🚀 onMounted: 初始化示例工作流')
+  //   setTimeout(() => {
+  //     initializeExampleWorkflow()
+  //   }, 100)
+  // }
 })
 
 onUnmounted(() => {

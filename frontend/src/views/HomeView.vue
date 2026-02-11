@@ -52,7 +52,7 @@ const navLinks = [
     </header>
 
     <!-- Main Content -->
-    <main class="flex-1 overflow-y-auto p-8 lg:p-12 scroll-smooth">
+    <main class="flex-1 overflow-y-auto p-8 lg:p-12 scroll-smooth bg-background-light">
 
       <div class="max-w-6xl mx-auto">
 

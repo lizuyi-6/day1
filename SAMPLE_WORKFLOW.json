@@ -1,0 +1,71 @@
+{
+  "id": "3a514ee1-f178-451e-8a7e-84d7de8fdfef",
+  "name": "示例工作流 - AI智能助手",
+  "description": "演示如何使用LLM节点创建一个简单的AI对话助手",
+  "created": "2026-02-08T16:42:15.029Z",
+  "graphData": {
+    "nodes": [
+      {
+        "id": "start-node",
+        "type": "start",
+        "position": {
+          "x": 100,
+          "y": 150
+        },
+        "data": {
+          "label": "开始",
+          "variables": {
+            "userInput": "请介绍一下你自己"
+          }
+        }
+      },
+      {
+        "id": "llm-node",
+        "type": "llm",
+        "position": {
+          "x": 400,
+          "y": 150
+        },
+        "data": {
+          "label": "AI处理",
+          "config": {
+            "prompt": "你是一个友好的AI助手。请回答：{{userInput}}",
+            "model": "gpt-3.5-turbo",
+            "temperature": 0.7,
+            "maxTokens": 500
+          }
+        }
+      },
+      {
+        "id": "end-node",
+        "type": "end",
+        "position": {
+          "x": 700,
+          "y": 150
+        },
+        "data": {
+          "label": "结束",
+          "outputMapping": {
+            "response": "aiResponse"
+          }
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "edge-1",
+        "source": "start-node",
+        "target": "llm-node",
+        "type": "default",
+        "animated": true
+      },
+      {
+        "id": "edge-2",
+        "source": "llm-node",
+        "target": "end-node",
+        "type": "default",
+        "animated": true
+      }
+    ]
+  }
+}

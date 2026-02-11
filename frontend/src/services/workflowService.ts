@@ -623,9 +623,9 @@ ${spec.authentication === 'api_key' ? '需要 API Key' : '无需认证'}
     this.clearTerminalLogs()
     // 启动调试会话，以便接收实时日志
     this.startDebugSession(id)
-    
+
     this.addTerminalLog('info', '开始执行工作流', id, `Workflow-${id}`)
-    
+
     try {
       const response = await post(`${API_BASE_URL}/workflow/${id}/run`, inputs, {
         timeout: DEFAULT_API_TIMEOUT,
@@ -634,7 +634,11 @@ ${spec.authentication === 'api_key' ? '需要 API Key' : '无需认证'}
 
       if (response.success) {
         this.addTerminalLog('success', '工作流执行完成', id, `Workflow-${id}`)
-        return response.data
+        // Backend returns: { success: true, data: { nodeOutputs }, message: "..." }
+        // Our apiRequest wraps it as: { success: true, data: { success: true, data: nodeOutputs, message: "..." } }
+        // So we need response.data.data to get the actual nodeOutputs
+        const backendResponse = response.data as any;
+        return backendResponse.data || backendResponse;
       }
 
       console.error('Workflow execution error:', response.error)

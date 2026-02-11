@@ -142,6 +142,30 @@ const testNode = async () => {
     isTesting.value = false
   }
 }
+
+const testKnowledgeNode = async () => {
+  if (!selectedNode.value) return
+
+  isTesting.value = true
+  testResult.value = null
+  testError.value = null
+
+  try {
+    const query = selectedNode.value.data.query || '测试查询'
+
+    const response = await get(`${API_BASE_URL}/knowledge/search`, {
+      params: { q: query }
+    })
+
+    if (response.success || response.data) {
+      testResult.value = response.data || []
+    }
+  } catch (error: any) {
+    testError.value = error.message || '测试失败'
+  } finally {
+    isTesting.value = false
+  }
+}
 </script>
 
 <template>
@@ -241,6 +265,11 @@ const testNode = async () => {
                       <label class="form-label">最大令牌数</label>
                       <input type="number" v-model="selectedNode.data.maxTokens" class="form-input" placeholder="4096" />
                   </div>
+                  <div class="form-group">
+                      <label class="form-label">欢迎语（首次对话时显示）</label>
+                      <textarea v-model="selectedNode.data.welcomeMessage" rows="2" class="form-textarea" placeholder="你好！我是AI助手，有什么可以帮你的吗？"></textarea>
+                      <p class="text-[10px] text-slate-400 mt-1">当用户首次选择该工作流时显示的系统消息</p>
+                  </div>
 
                   <button
                       @click="testNode"
@@ -318,20 +347,39 @@ const testNode = async () => {
 
               <div v-else-if="selectedNode.type === 'knowledge'" class="space-y-4">
                    <div class="form-group">
-                      <label class="form-label">知识库</label>
-                      <select class="form-select">
-                          <option value="default">默认知识库</option>
-                          <option value="technical">技术文档</option>
-                          <option value="legal">法律文档</option>
-                      </select>
-                  </div>
-                  <div class="form-group">
                       <label class="form-label">查询文本</label>
-                      <textarea v-model="selectedNode.data.query" rows="3" class="form-textarea" placeholder="在此输入查询内容..."></textarea>
+                      <textarea v-model="selectedNode.data.query" rows="3" class="form-textarea" placeholder="输入查询内容或使用上游变量..."></textarea>
+                      <p class="text-[10px] text-slate-400 mt-1">留空以使用上游节点提供的查询参数</p>
                   </div>
                   <div class="form-group">
                       <label class="form-label">返回数量 ({{ selectedNode.data.topK || 3 }})</label>
-                      <input type="range" v-model="selectedNode.data.topK" min="1" max="10" step="1" class="w-full accent-indigo-600" />
+                      <input type="range" v-model="selectedNode.data.topK" min="1" max="10" step="1" class="w-full accent-emerald-600" />
+                  </div>
+
+                  <button
+                      @click="testKnowledgeNode"
+                      :disabled="isTesting"
+                      class="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white text-xs font-bold uppercase rounded-md transition-colors">
+                      <Loader2 v-if="isTesting" :size="14" class="animate-spin" />
+                      <Play v-else :size="14" />
+                      <span>{{ isTesting ? '测试中...' : '测试检索' }}</span>
+                  </button>
+
+                  <div v-if="testResult || testError" class="mt-4 rounded-md p-3 text-xs" :class="testError ? 'bg-red-50 border border-red-200' : 'bg-emerald-50 border border-emerald-200'">
+                      <div v-if="testError" class="text-red-600">
+                          <div class="font-bold mb-1">测试失败</div>
+                          {{ testError }}
+                      </div>
+                      <div v-else class="text-emerald-600">
+                          <div class="font-bold mb-1">测试成功</div>
+                          <div class="text-slate-600 mb-2">找到 {{ testResult?.length || 0 }} 条结果</div>
+                          <div class="max-h-40 overflow-y-auto space-y-2">
+                              <div v-for="(item, idx) in (testResult || []).slice(0, 3)" :key="idx" class="bg-emerald-100/50 p-2 rounded text-[10px]">
+                                  <div class="font-bold">{{ item.fileName }}</div>
+                                  <div class="mt-1 line-clamp-2">{{ item.content?.substring(0, 100) }}...</div>
+                              </div>
+                          </div>
+                      </div>
                   </div>
               </div>
 

@@ -1,0 +1,272 @@
+
+> frontend@0.0.0 dev
+> vite
+
+
+  [32m[1mVITE[22m v4.5.14[39m  [2mready in [0m[1m27816[22m[2m[0m ms[22m
+
+  [32m➜[39m  [1mLocal[22m:   [36mhttp://localhost:[1m5173[22m/[39m
+  [32m➜[39m  [1mNetwork[22m: [36mhttp://198.18.0.1:[1m5173[22m/[39m
+  [32m➜[39m  [1mNetwork[22m: [36mhttp://192.168.3.107:[1m5173[22m/[39m
+  [32m➜[39m  [1mNetwork[22m: [36mhttp://192.168.124.1:[1m5173[22m/[39m
+  [32m➜[39m  [1mNetwork[22m: [36mhttp://192.168.15.1:[1m5173[22m/[39m
+  [32m➜[39m  [1mNetwork[22m: [36mhttp://172.19.192.1:[1m5173[22m/[39m
+Error: [31m  Failed to scan for dependencies from entries:
+  X:/day1/frontend/index.html
+X:/day1/frontend/test-vue.html
+X:/day1/frontend/test.html
+
+  [39m[31m✘ [41;31m[[41;97mERROR[41;31m][0m [1mUnexpected ")"[0m
+
+    script:X:/day1/frontend/src/views/WorkflowView.vue?id=0:543:1:
+[37m      543 │ }[32m)[37m
+          ╵  [32m^[0m
+
+
+    at failureErrorWithLog (X:\day1\frontend\node_modules\vite\node_modules\esbuild\lib\main.js:1649:15)
+    at X:\day1\frontend\node_modules\vite\node_modules\esbuild\lib\main.js:1058:25
+    at runOnEndCallbacks (X:\day1\frontend\node_modules\vite\node_modules\esbuild\lib\main.js:1484:45)
+    at buildResponseToResult (X:\day1\frontend\node_modules\vite\node_modules\esbuild\lib\main.js:1056:7)
+    at X:\day1\frontend\node_modules\vite\node_modules\esbuild\lib\main.js:1068:9
+    at new Promise (<anonymous>)
+    at requestCallbacks.on-end (X:\day1\frontend\node_modules\vite\node_modules\esbuild\lib\main.js:1067:54)
+    at handleRequest (X:\day1\frontend\node_modules\vite\node_modules\esbuild\lib\main.js:729:19)
+    at handleIncomingPacket (X:\day1\frontend\node_modules\vite\node_modules\esbuild\lib\main.js:755:7)
+    at Socket.readFromStdout (X:\day1\frontend\node_modules\vite\node_modules\esbuild\lib\main.js:679:7)
+[2m00:45:50[22m [31m[1m[vite][22m[39m [31mInternal server error: [vue/compiler-sfc] Unexpected token (543:1)
+
+X:/day1/frontend/src/views/WorkflowView.vue
+541|        fitView()
+542|      })
+543|  })
+   |   ^
+544|  
+545|  // 监听节点和边的变化，标记为未保存[39m
+  Plugin: [35mvite:vue[39m
+  File: [36mX:/day1/frontend/src/views/WorkflowView.vue[39m:543:1
+[33m  538|  
+  539|      // 适配视图
+  540|      window.requestAnimationFrame(() => {
+     |                                           ^
+  541|        fitView()
+  542|      })[39m
+      at constructor (X:\day1\frontend\node_modules\@babel\parser\lib\index.js:365:19)
+      at TypeScriptParserMixin.raise (X:\day1\frontend\node_modules\@babel\parser\lib\index.js:6599:19)
+      at TypeScriptParserMixin.unexpected (X:\day1\frontend\node_modules\@babel\parser\lib\index.js:6619:16)
+      at TypeScriptParserMixin.parseExprAtom (X:\day1\frontend\node_modules\@babel\parser\lib\index.js:11442:22)
+      at TypeScriptParserMixin.parseExprSubscripts (X:\day1\frontend\node_modules\@babel\parser\lib\index.js:11081:23)
+      at TypeScriptParserMixin.parseUpdate (X:\day1\frontend\node_modules\@babel\parser\lib\index.js:11066:21)
+      at TypeScriptParserMixin.parseMaybeUnary (X:\day1\frontend\node_modules\@babel\parser\lib\index.js:11046:23)
+      at TypeScriptParserMixin.parseMaybeUnary (X:\day1\frontend\node_modules\@babel\parser\lib\index.js:9837:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (X:\day1\frontend\node_modules\@babel\parser\lib\index.js:10899:61)
+      at TypeScriptParserMixin.parseExprOps (X:\day1\frontend\node_modules\@babel\parser\lib\index.js:10904:23)
+[2m00:54:26[22m [31m[1m[vite][22m[39m [31mInternal server error: [vue/compiler-sfc] Unexpected token (543:1)
+
+X:/day1/frontend/src/views/WorkflowView.vue
+541|        fitView()
+542|      })
+543|  })
+   |   ^
+544|  
+545|  // 监听节点和边的变化，标记为未保存[39m
+  Plugin: [35mvite:vue[39m
+  File: [36mX:/day1/frontend/src/views/WorkflowView.vue[39m:543:1
+[33m  538|  
+  539|      // 适配视图
+  540|      window.requestAnimationFrame(() => {
+     |                                           ^
+  541|        fitView()
+  542|      })[39m
+      at constructor (X:\day1\frontend\node_modules\@babel\parser\lib\index.js:365:19)
+      at TypeScriptParserMixin.raise (X:\day1\frontend\node_modules\@babel\parser\lib\index.js:6599:19)
+      at TypeScriptParserMixin.unexpected (X:\day1\frontend\node_modules\@babel\parser\lib\index.js:6619:16)
+      at TypeScriptParserMixin.parseExprAtom (X:\day1\frontend\node_modules\@babel\parser\lib\index.js:11442:22)
+      at TypeScriptParserMixin.parseExprSubscripts (X:\day1\frontend\node_modules\@babel\parser\lib\index.js:11081:23)
+      at TypeScriptParserMixin.parseUpdate (X:\day1\frontend\node_modules\@babel\parser\lib\index.js:11066:21)
+      at TypeScriptParserMixin.parseMaybeUnary (X:\day1\frontend\node_modules\@babel\parser\lib\index.js:11046:23)
+      at TypeScriptParserMixin.parseMaybeUnary (X:\day1\frontend\node_modules\@babel\parser\lib\index.js:9837:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (X:\day1\frontend\node_modules\@babel\parser\lib\index.js:10899:61)
+      at TypeScriptParserMixin.parseExprOps (X:\day1\frontend\node_modules\@babel\parser\lib\index.js:10904:23)
+[2m01:00:42[22m [36m[1m[vite][22m[39m [32m✨ new dependencies optimized: [33mimmer, lodash-es[32m[39m
+[2m01:00:42[22m [36m[1m[vite][22m[39m [32m✨ optimized dependencies changed. reloading[39m
+[2m01:06:54[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/assets/main.css, /src/views/WorkflowView.vue, /src/components/workflow/DebugPanel.vue, /src/components/workflow/WorkflowDemo.vue[22m
+[2m01:08:22[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/assets/main.css, /src/views/WorkflowView.vue, /src/components/workflow/DebugPanel.vue, /src/components/workflow/WorkflowDemo.vue[22m
+[2m08:33:27[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/views/WorkflowView.vue, /src/assets/main.css[22m
+[2m08:33:32[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/views/WorkflowView.vue, /src/assets/main.css[22m
+[2m08:34:56[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/views/WorkflowView.vue, /src/assets/main.css[22m
+[2m08:34:56[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/views/WorkflowView.vue, /src/assets/main.css[22m
+[2m08:35:07[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/views/WorkflowView.vue, /src/assets/main.css[22m
+[2m08:35:46[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/views/WorkflowView.vue, /src/assets/main.css[22m
+[2m09:04:26[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/router/index.ts[22m
+[2m09:09:46[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/assets/main.css, /src/views/WorkflowView.vue, /src/components/workflow/DebugPanel.vue, /src/components/workflow/WorkflowDemo.vue[22m
+[2m09:10:16[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/assets/main.css, /src/views/WorkflowView.vue, /src/components/workflow/DebugPanel.vue, /src/components/workflow/WorkflowDemo.vue[22m
+[2m09:10:31[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/assets/main.css, /src/views/WorkflowView.vue, /src/components/workflow/DebugPanel.vue, /src/components/workflow/WorkflowDemo.vue[22m
+[2m09:33:11[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/views/HomeView.vue, /src/assets/main.css[22m
+[2m09:33:30[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/views/HomeView.vue, /src/assets/main.css[22m
+[2m09:34:03[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/views/ChatView.vue, /src/assets/main.css[22m
+[2m09:34:37[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/views/KnowledgeView.vue, /src/assets/main.css[22m
+[2m10:19:12[22m [36m[1m[vite][22m[39m [32m.env.tmp.16432.1770603552735 changed, restarting server...[39m
+[2m10:19:12[22m [36m[1m[vite][22m[39m [32m.env changed, restarting server...[39m
+[2m10:19:13[22m [36m[1m[vite][22m[39m [32m.env.tmp.16432.1770603552735 changed, restarting server...[39m
+[2m10:19:13[22m [36m[1m[vite][22m[39m server restarted.
+[2m10:20:34[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/assets/main.css, /src/views/WorkflowListView.vue[22m
+[2m10:27:04[22m [36m[1m[vite][22m[39m [32m.env.tmp.16432.1770604024223 changed, restarting server...[39m
+[2m10:27:04[22m [36m[1m[vite][22m[39m server restarted.
+[2m10:27:08[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/assets/main.css, /src/views/WorkflowListView.vue[22m
+[2m10:32:29[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/assets/main.css, /src/views/WorkflowListView.vue[22m
+[2m10:48:17[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/views/WorkflowView.vue, /src/assets/main.css[22m
+[2m10:48:44[22m [31m[1m[vite][22m[39m [31mInternal server error: [vue/compiler-sfc] 'import' and 'export' may only appear at the top level. (511:0)
+
+X:/day1/frontend/src/views/WorkflowView.vue
+508|  })
+509|  
+510|  // Initialize scroll animations
+   |                                  ^
+511|  import { useScrollAnimations } from '@/composables/useScrollAnimations'
+   |  ^
+512|  useScrollAnimations()[39m
+  Plugin: [35mvite:vue[39m
+  File: [36mX:/day1/frontend/src/views/WorkflowView.vue[39m:511:0
+[33m  508|  })
+  509|  
+  510|  // Initialize scroll animations
+     |          ^
+  511|  import { useScrollAnimations } from '@/composables/useScrollAnimations'
+  512|  useScrollAnimations()[39m
+      at constructor (X:\day1\frontend\node_modules\@babel\parser\lib\index.js:365:19)
+      at TypeScriptParserMixin.raise (X:\day1\frontend\node_modules\@babel\parser\lib\index.js:6599:19)
+      at TypeScriptParserMixin.parseStatementContent (X:\day1\frontend\node_modules\@babel\parser\lib\index.js:12871:18)
+      at TypeScriptParserMixin.parseStatementContent (X:\day1\frontend\node_modules\@babel\parser\lib\index.js:9508:18)
+      at TypeScriptParserMixin.parseStatementLike (X:\day1\frontend\node_modules\@babel\parser\lib\index.js:12767:17)
+      at TypeScriptParserMixin.parseStatementListItem (X:\day1\frontend\node_modules\@babel\parser\lib\index.js:12747:17)
+      at TypeScriptParserMixin.parseBlockOrModuleBlockBody (X:\day1\frontend\node_modules\@babel\parser\lib\index.js:13316:61)
+      at TypeScriptParserMixin.parseBlockBody (X:\day1\frontend\node_modules\@babel\parser\lib\index.js:13309:10)
+      at TypeScriptParserMixin.parseBlock (X:\day1\frontend\node_modules\@babel\parser\lib\index.js:13297:10)
+      at TypeScriptParserMixin.parseFunctionBody (X:\day1\frontend\node_modules\@babel\parser\lib\index.js:12100:24)
+[2m10:49:37[22m [31m[1m[vite][22m[39m [31mInternal server error: [vue/compiler-sfc] 'import' and 'export' may only appear at the top level. (511:0)
+
+X:/day1/frontend/src/views/WorkflowView.vue
+508|  })
+509|  
+510|  // Initialize scroll animations
+   |                                  ^
+511|  import { useScrollAnimations } from '@/composables/useScrollAnimations'
+   |  ^
+512|  useScrollAnimations()[39m
+  Plugin: [35mvite:vue[39m
+  File: [36mX:/day1/frontend/src/views/WorkflowView.vue[39m:511:0
+[33m  508|  })
+  509|  
+  510|  // Initialize scroll animations
+     |          ^
+  511|  import { useScrollAnimations } from '@/composables/useScrollAnimations'
+  512|  useScrollAnimations()[39m
+      at constructor (X:\day1\frontend\node_modules\@babel\parser\lib\index.js:365:19)
+      at TypeScriptParserMixin.raise (X:\day1\frontend\node_modules\@babel\parser\lib\index.js:6599:19)
+      at TypeScriptParserMixin.parseStatementContent (X:\day1\frontend\node_modules\@babel\parser\lib\index.js:12871:18)
+      at TypeScriptParserMixin.parseStatementContent (X:\day1\frontend\node_modules\@babel\parser\lib\index.js:9508:18)
+      at TypeScriptParserMixin.parseStatementLike (X:\day1\frontend\node_modules\@babel\parser\lib\index.js:12767:17)
+      at TypeScriptParserMixin.parseStatementListItem (X:\day1\frontend\node_modules\@babel\parser\lib\index.js:12747:17)
+      at TypeScriptParserMixin.parseBlockOrModuleBlockBody (X:\day1\frontend\node_modules\@babel\parser\lib\index.js:13316:61)
+      at TypeScriptParserMixin.parseBlockBody (X:\day1\frontend\node_modules\@babel\parser\lib\index.js:13309:10)
+      at TypeScriptParserMixin.parseBlock (X:\day1\frontend\node_modules\@babel\parser\lib\index.js:13297:10)
+      at TypeScriptParserMixin.parseFunctionBody (X:\day1\frontend\node_modules\@babel\parser\lib\index.js:12100:24)
+[2m10:51:38[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/views/WorkflowView.vue, /src/assets/main.css[22m
+[2m10:51:38[22m [31m[1m[vite][22m[39m [31mInternal server error: [vue/compiler-sfc] 'import' and 'export' may only appear at the top level. (517:0)
+
+X:/day1/frontend/src/views/WorkflowView.vue
+514|  })
+515|  
+516|  // Initialize scroll animations
+   |                                  ^
+517|  import { useScrollAnimations } from '@/composables/useScrollAnimations'
+   |  ^
+518|  useScrollAnimations()[39m
+  Plugin: [35mvite:vue[39m
+  File: [36mX:/day1/frontend/src/views/WorkflowView.vue[39m:517:0
+[33m  514|  })
+  515|  
+  516|  // Initialize scroll animations
+     |          ^
+  517|  import { useScrollAnimations } from '@/composables/useScrollAnimations'
+  518|  useScrollAnimations()[39m
+      at constructor (X:\day1\frontend\node_modules\@babel\parser\lib\index.js:365:19)
+      at TypeScriptParserMixin.raise (X:\day1\frontend\node_modules\@babel\parser\lib\index.js:6599:19)
+      at TypeScriptParserMixin.parseStatementContent (X:\day1\frontend\node_modules\@babel\parser\lib\index.js:12871:18)
+      at TypeScriptParserMixin.parseStatementContent (X:\day1\frontend\node_modules\@babel\parser\lib\index.js:9508:18)
+      at TypeScriptParserMixin.parseStatementLike (X:\day1\frontend\node_modules\@babel\parser\lib\index.js:12767:17)
+      at TypeScriptParserMixin.parseStatementListItem (X:\day1\frontend\node_modules\@babel\parser\lib\index.js:12747:17)
+      at TypeScriptParserMixin.parseBlockOrModuleBlockBody (X:\day1\frontend\node_modules\@babel\parser\lib\index.js:13316:61)
+      at TypeScriptParserMixin.parseBlockBody (X:\day1\frontend\node_modules\@babel\parser\lib\index.js:13309:10)
+      at TypeScriptParserMixin.parseBlock (X:\day1\frontend\node_modules\@babel\parser\lib\index.js:13297:10)
+      at TypeScriptParserMixin.parseFunctionBody (X:\day1\frontend\node_modules\@babel\parser\lib\index.js:12100:24)
+[2m10:51:56[22m [31m[1m[vite][22m[39m [31mInternal server error: [vue/compiler-sfc] 'import' and 'export' may only appear at the top level. (517:0)
+
+X:/day1/frontend/src/views/WorkflowView.vue
+514|  })
+515|  
+516|  // Initialize scroll animations
+   |                                  ^
+517|  import { useScrollAnimations } from '@/composables/useScrollAnimations'
+   |  ^
+518|  useScrollAnimations()[39m
+  Plugin: [35mvite:vue[39m
+  File: [36mX:/day1/frontend/src/views/WorkflowView.vue[39m:517:0
+[33m  514|  })
+  515|  
+  516|  // Initialize scroll animations
+     |          ^
+  517|  import { useScrollAnimations } from '@/composables/useScrollAnimations'
+  518|  useScrollAnimations()[39m
+      at constructor (X:\day1\frontend\node_modules\@babel\parser\lib\index.js:365:19)
+      at TypeScriptParserMixin.raise (X:\day1\frontend\node_modules\@babel\parser\lib\index.js:6599:19)
+      at TypeScriptParserMixin.parseStatementContent (X:\day1\frontend\node_modules\@babel\parser\lib\index.js:12871:18)
+      at TypeScriptParserMixin.parseStatementContent (X:\day1\frontend\node_modules\@babel\parser\lib\index.js:9508:18)
+      at TypeScriptParserMixin.parseStatementLike (X:\day1\frontend\node_modules\@babel\parser\lib\index.js:12767:17)
+      at TypeScriptParserMixin.parseStatementListItem (X:\day1\frontend\node_modules\@babel\parser\lib\index.js:12747:17)
+      at TypeScriptParserMixin.parseBlockOrModuleBlockBody (X:\day1\frontend\node_modules\@babel\parser\lib\index.js:13316:61)
+      at TypeScriptParserMixin.parseBlockBody (X:\day1\frontend\node_modules\@babel\parser\lib\index.js:13309:10)
+      at TypeScriptParserMixin.parseBlock (X:\day1\frontend\node_modules\@babel\parser\lib\index.js:13297:10)
+      at TypeScriptParserMixin.parseFunctionBody (X:\day1\frontend\node_modules\@babel\parser\lib\index.js:12100:24)
+[2m10:52:26[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/views/WorkflowView.vue, /src/assets/main.css[22m
+[2m10:55:54[22m [31m[1m[vite][22m[39m [31mInternal server error: [vue/compiler-sfc] Unexpected token (610:0)
+
+X:/day1/frontend/src/views/WorkflowView.vue
+607|    }
+608|  })
+609|  
+   |   ^
+610|  </script>
+   |  ^
+611|  [39m
+  Plugin: [35mvite:vue[39m
+  File: [36mX:/day1/frontend/src/views/WorkflowView.vue[39m:610:0
+[33m  603|      } else if (event.event.button === 2) {
+  604|        // 右键：显示上下文菜单
+  605|        showContextMenu(event.event, event.node)
+     |                                       ^
+  606|      }
+  607|    }[39m
+      at constructor (X:\day1\frontend\node_modules\@babel\parser\lib\index.js:365:19)
+      at TypeScriptParserMixin.raise (X:\day1\frontend\node_modules\@babel\parser\lib\index.js:6599:19)
+      at TypeScriptParserMixin.unexpected (X:\day1\frontend\node_modules\@babel\parser\lib\index.js:6619:16)
+      at TypeScriptParserMixin.parseExprAtom (X:\day1\frontend\node_modules\@babel\parser\lib\index.js:11442:22)
+      at TypeScriptParserMixin.parseExprSubscripts (X:\day1\frontend\node_modules\@babel\parser\lib\index.js:11081:23)
+      at TypeScriptParserMixin.parseUpdate (X:\day1\frontend\node_modules\@babel\parser\lib\index.js:11066:21)
+      at TypeScriptParserMixin.parseMaybeUnary (X:\day1\frontend\node_modules\@babel\parser\lib\index.js:11046:23)
+      at TypeScriptParserMixin.parseMaybeUnary (X:\day1\frontend\node_modules\@babel\parser\lib\index.js:9837:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (X:\day1\frontend\node_modules\@babel\parser\lib\index.js:10899:61)
+      at TypeScriptParserMixin.parseExprOps (X:\day1\frontend\node_modules\@babel\parser\lib\index.js:10904:23)
+[2m10:59:20[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/views/WorkflowView.vue, /src/assets/main.css[22m
+[2m11:03:38[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/assets/main.css, /src/views/WorkflowListView.vue, /src/views/WorkflowView.vue, /src/components/workflow/DebugPanel.vue, /src/components/workflow/WorkflowDemo.vue[22m
+[2m11:03:38[22m [33m[1m[vite][22m[39m [33mwarning: [33mDuplicate member "createWorkflow" in class body[33m
+428|  
+429|    // 创建新工作流
+430|    async createWorkflow(name: string, description?: string): Promise<{ success: boolean; workflow?: any; error?: string }> {
+   |          ^
+431|      const response = await post(`${API_BASE_URL}/workflow`, {
+432|        name,
+[39m
+  Plugin: [35mvite:esbuild[39m
+  File: [36mX:/day1/frontend/src/services/workflowService.ts[39m
+[2m11:22:39[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/assets/main.css, /src/views/WorkflowListView.vue, /src/views/WorkflowView.vue, /src/components/workflow/DebugPanel.vue, /src/components/workflow/WorkflowDemo.vue[22m

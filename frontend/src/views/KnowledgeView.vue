@@ -4,7 +4,7 @@ import { UploadCloud, FileText, CheckCircle2, AlertCircle, Plus, LayoutGrid, Wor
 import Logo from '@/components/layout/Logo.vue'
 import { RouterLink, useRoute } from 'vue-router'
 import { useScrollAnimations } from '@/composables/useScrollAnimations'
-import { post, get } from '@/utils/api'
+import { post, get, del } from '@/utils/api'
 import { API_BASE_URL } from '@/config/api'
 
 const route = useRoute()
@@ -43,12 +43,19 @@ const navLinks = [
 ]
 
 const loadDocuments = async () => {
-    // 暂时模拟获取列表，实际应该添加 GET /knowledge/documents 接口
-    // 这里我们直接用搜索接口获取所有（如果支持空搜索）或者显示上传历史
-    // 由于后端可能没有专门的列出所有文档的接口，我们暂时只显示新上传的
-    // 或者通过搜索 "*" 来获取
     try {
-        // Mock initial list or implement backend list endpoint
+        const response = await get(`${API_BASE_URL}/knowledge/documents`)
+
+        if (response.success || response.data) {
+            const data = response.data || response
+            documents.value = data.items.map((doc: any) => ({
+                id: doc.firstChunkId,
+                title: doc.fileName,
+                status: 'indexed' as const,
+                createdAt: new Date(doc.uploadedAt).toISOString().split('T')[0],
+                chunkCount: doc.chunkCount
+            }))
+        }
     } catch (error) {
         console.error('Failed to load documents', error)
     }
@@ -112,21 +119,41 @@ const uploadFile = async (file: File) => {
 
 const handleSearch = async () => {
     if (!searchQuery.value.trim()) return
-    
+
     isSearching.value = true
+    searchResults.value = []
     try {
-        const response = await post(`${API_BASE_URL}/knowledge/search`, {
-            query: searchQuery.value,
-            limit: 5
+        const response = await get(`${API_BASE_URL}/knowledge/search`, {
+            params: { q: searchQuery.value }
         })
-        
-        if (response.success) {
-            searchResults.value = response.data
+
+        if (response.success || response.data) {
+            searchResults.value = response.data || []
         }
     } catch (error) {
         console.error('Search failed:', error)
+        alert('搜索失败: ' + (error instanceof Error ? error.message : '未知错误'))
     } finally {
         isSearching.value = false
+    }
+}
+
+const deleteDocument = async (doc: Document) => {
+    if (!confirm(`确定要删除文档 "${doc.title}" 吗？此操作不可恢复，将删除该文档的所有数据块。`)) {
+        return
+    }
+
+    try {
+        const response = await del(`${API_BASE_URL}/knowledge/documents/${encodeURIComponent(doc.title)}`)
+
+        if (response.success || response.data) {
+            // 从列表中移除
+            documents.value = documents.value.filter(d => d.id !== doc.id)
+            alert('删除成功')
+        }
+    } catch (error) {
+        console.error('Delete failed:', error)
+        alert('删除失败: ' + (error instanceof Error ? error.message : '未知错误'))
     }
 }
 
@@ -215,7 +242,35 @@ const handleSearch = async () => {
                             <CheckCircle2 :size="12" />
                             {{ doc.status === 'indexed' ? '已索引' : '处理中' }}
                         </span>
+                        <button
+                          @click="deleteDocument(doc)"
+                          class="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                          title="删除文档">
+                          <Trash2 :size="14" />
+                        </button>
                     </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Search Results -->
+        <div v-if="searchResults.length > 0" class="mt-8 bg-white/60 dark:bg-[#2a241e]/60 backdrop-blur-md border border-sand/30 dark:border-white/10 rounded-2xl shadow-sm overflow-hidden">
+            <div class="px-6 py-4 border-b border-sand/30 dark:border-white/10 bg-sand/20 dark:bg-white/5">
+                <h3 class="text-xs font-bold text-khaki uppercase tracking-[0.15em]">搜索结果 ({{ searchResults.length }})</h3>
+            </div>
+            <div class="p-6 space-y-4">
+                <div v-for="(result, idx) in searchResults" :key="idx"
+                     class="p-4 bg-white dark:bg-[#1e1711] rounded-xl border border-sand/20 dark:border-white/10 hover:shadow-md transition-shadow">
+                    <div class="flex items-center gap-2 mb-3">
+                        <FileText :size="16" class="text-emerald-600" />
+                        <span class="text-sm font-bold text-charcoal dark:text-white">{{ result.fileName }}</span>
+                        <span class="text-[10px] text-khaki dark:text-sand/50 ml-auto">
+                            {{ new Date(result.createdAt).toLocaleDateString() }}
+                        </span>
+                    </div>
+                    <p class="text-sm text-charcoal/80 dark:text-sand/80 line-clamp-4 leading-relaxed font-mono bg-sand/10 dark:bg-white/5 p-3 rounded-lg">
+                        {{ result.content }}
+                    </p>
                 </div>
             </div>
         </div>

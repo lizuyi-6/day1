@@ -40,6 +40,11 @@ const router = createRouter({
       name: 'chat',
       component: () => import('../views/ChatView.vue'),
     },
+    {
+      path: '/workshop',
+      name: 'workshop',
+      component: () => import('../views/ThemeWorkshop.vue'),
+    },
   ],
 })
 

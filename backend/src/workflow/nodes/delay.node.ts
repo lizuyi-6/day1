@@ -18,22 +18,29 @@ export class DelayNode extends BaseNode {
     inputs: Record<string, any>,
     context: ExecutionContext,
   ): Promise<Record<string, any>> {
-    const duration = inputs.duration || 5000; // Default 5 seconds
-    const durationMs =
-      typeof duration === 'string' ? parseInt(duration) : duration;
+    // Get delay duration from node config or use default
+    const nodeData = context.variables as any;
+    const configuredDelay = nodeData?.delay || nodeData?.duration || 5000;
+    const durationMs = typeof configuredDelay === 'string'
+      ? parseInt(configuredDelay)
+      : configuredDelay;
 
     this.logger.log(`Delaying execution for ${durationMs}ms`);
 
     // Real delay implementation
     await this.delay(durationMs);
 
-    this.logger.log(`Delay completed`);
+    this.logger.log(`Delay completed, passing through ${Object.keys(inputs).length} input(s)`);
+
+    // Pass through all inputs unchanged - delay node should be transparent
+    // Remove internal 'duration' field if it exists in inputs
+    const { duration, ...passthroughInputs } = inputs;
 
     return {
-      success: true,
-      message: `Delayed for ${durationMs}ms`,
-      duration: durationMs,
-      timestamp: new Date().toISOString(),
+      ...passthroughInputs,
+      // Optional: Add metadata about the delay (with a different key to avoid conflicts)
+      _delayed: true,
+      _delayDuration: durationMs,
     };
   }
 

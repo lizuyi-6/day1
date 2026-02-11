@@ -1,0 +1,226 @@
+NestJS 最佳实践指南
+
+NestJS 是一个用于构建高效、可扩展的 Node.js 服务器端应用程序的框架。以下是一些最佳实践：
+
+## 1. 模块化架构
+
+NestJS 采用模块化设计，每个功能应该封装在独立的模块中：
+
+```typescript
+@Module({
+  imports: [CommonModule],
+  controllers: [UserController],
+  providers: [UserService],
+  exports: [UserService]
+})
+export class UserModule {}
+```
+
+## 2. 依赖注入
+
+使用依赖注入（DI）来管理类之间的依赖关系：
+
+```typescript
+@Injectable()
+export class UserService {
+  constructor(
+    @InjectRepository(User) private userRepo: Repository<User>,
+    private readonly mailService: MailService,
+  ) {}
+}
+```
+
+## 3. 使用 DTO 进行数据验证
+
+定义数据传输对象（DTO）并使用验证管道：
+
+```typescript
+export class CreateUserDto {
+  @IsString()
+  @MinLength(4)
+  username: string;
+
+  @IsEmail()
+  email: string;
+
+  @IsString()
+  @MinLength(6)
+  password: string;
+}
+```
+
+## 4. 异常处理
+
+使用 NestJS 内置的异常类：
+
+```typescript
+@Post()
+async create(@Body() createUserDto: CreateUserDto) {
+  try {
+    return await this.userService.create(createUserDto);
+  } catch (error) {
+    if (error.code === '23505') {
+      throw new ConflictException('User already exists');
+    }
+    throw new BadRequestException('Invalid data');
+  }
+}
+```
+
+## 5. 使用 Guard 进行认证和授权
+
+实现守卫来保护路由：
+
+```typescript
+@Injectable()
+export class JwtAuthGuard implements CanActivate {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    const request = context.switchToHttp().getRequest();
+    const token = this.extractTokenFromHeader(request);
+    if (!token) {
+      throw new UnauthorizedException();
+    }
+    return true;
+  }
+}
+```
+
+## 6. 拦截器
+
+使用拦截器实现横切关注点（如日志、转换）：
+
+```typescript
+@Injectable()
+export class LoggingInterceptor implements NestInterceptor {
+  intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
+    const now = Date.now();
+    return next.handle().pipe(tap(() => console.log(`After... ${Date.now() - now}ms`)));
+  }
+}
+```
+
+## 7. 管道
+
+使用管道进行数据转换和验证：
+
+```typescript
+@Injectable()
+export class ValidationPipe implements PipeTransform {
+  transform(value: any, metadata: ArgumentMetadata) {
+    if (!value) {
+      throw new BadRequestException('Validation failed');
+    }
+    return value;
+  }
+}
+```
+
+## 8. 数据库集成
+
+使用 TypeORM 或 Prisma 进行数据库操作：
+
+```typescript
+@Injectable()
+export class UserService {
+  constructor(
+    @InjectRepository(User) private userRepo: Repository<User>,
+  ) {}
+
+  async findAll(): Promise<User[]> {
+    return this.userRepo.find();
+  }
+}
+```
+
+## 9. 配置管理
+
+使用 @nestjs/config 包管理环境变量：
+
+```typescript
+@Module({
+  imports: [ConfigModule.forRoot()],
+})
+export class AppModule {}
+
+// 使用配置
+@Injectable()
+export class AppService {
+  constructor(private configService: ConfigService) {}
+
+  getDatabaseUrl() {
+    return this.configService.get('DATABASE_URL');
+  }
+}
+```
+
+## 10. 测试
+
+编写单元测试和端到端测试：
+
+```typescript
+describe('UserService', () => {
+  let service: UserService;
+
+  beforeEach(async () => {
+    const module = await Test.createTestingModule({
+      providers: [UserService],
+    }).compile();
+
+    service = module.get<UserService>(UserService);
+  });
+
+  it('should create a user', async () => {
+    const result = await service.create({ username: 'test', email: 'test@test.com' });
+    expect(result).toHaveProperty('id');
+  });
+});
+```
+
+## 11. 微服务
+
+使用 NestJS 微服务构建分布式系统：
+
+```typescript
+@app.Controller()
+export class AppController {
+  @EventPattern('user_created')
+  async handleUserCreated(data: Record<string, unknown>) {
+    console.log('User created:', data);
+  }
+}
+```
+
+## 12. WebSocket
+
+集成 WebSocket 实现实时通信：
+
+```typescript
+@WebSocketGateway()
+export class ChatGateway {
+  @SubscribeMessage('message')
+  handleMessage(client: Socket, payload: any): void {
+    return {
+      event: 'message',
+      data: payload,
+    };
+  }
+}
+```
+
+## 性能优化
+
+1. **使用缓存**: 利用 Redis 缓存频繁访问的数据
+2. **数据库索引**: 为常用查询字段添加索引
+3. **连接池**: 配置数据库连接池
+4. **异步操作**: 确保所有 I/O 操作都是异步的
+5. **分页**: 对大数据集使用分页查询
+
+## 安全性
+
+1. **验证输入**: 始终验证和清理用户输入
+2. **使用 HTTPS**: 在生产环境中使用 SSL/TLS
+3. **Helmet**: 使用 Helmet 中间件增强安全性
+4. **Rate Limiting**: 实施速率限制防止滥用
+5. **CORS**: 正确配置跨域资源共享
+
+遵循这些最佳实践，您可以构建健壮、可维护的 NestJS 应用程序。

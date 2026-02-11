@@ -128,6 +128,17 @@ export class WorkflowService implements OnModuleInit {
       cache: false, 
     });
 
+    // Auto-seed sample workflow if database is completely empty (no workflows at all)
+    if (total === 0 && !browserId) {
+      const globalCount = await this.workflowRepository.count();
+      if (globalCount === 0) {
+        console.log('🌱 Database is empty. Seeding sample workflow...');
+        const sampleWorkflow = await this.createSampleWorkflow();
+        items = [sampleWorkflow];
+        total = 1;
+      }
+    }
+
     console.log(`📊 Found ${total} workflows with strict filter.`);
 
     // Fallback: If strict filter returns nothing, try fetching everything to debug
@@ -451,5 +462,57 @@ export class WorkflowService implements OnModuleInit {
       url: productionUrl,
       isUpdate,
     };
+  }
+
+  private async createSampleWorkflow(): Promise<Workflow> {
+    const sampleGraph = {
+      "nodes": [
+        {
+          "id": "node-1",
+          "type": "start",
+          "position": { "x": 100, "y": 200 },
+          "data": { "label": "开始" }
+        },
+        {
+          "id": "node-2",
+          "type": "llm",
+          "position": { "x": 400, "y": 200 },
+          "data": { 
+            "label": "LLM 对话",
+            "model": "gpt-3.5-turbo",
+            "systemPrompt": "你是一个有用的助手。",
+            "userPrompt": "{{userQuestion}}"
+          }
+        },
+        {
+          "id": "node-3",
+          "type": "end",
+          "position": { "x": 700, "y": 200 },
+          "data": { "label": "结束" }
+        }
+      ],
+      "edges": [
+        {
+          "id": "edge-1",
+          "source": "node-1",
+          "target": "node-2"
+        },
+        {
+          "id": "edge-2",
+          "source": "node-2",
+          "target": "node-3"
+        }
+      ]
+    };
+
+    const workflow = this.workflowRepository.create({
+      name: '示例工作流 (Sample)',
+      description: '这是一个自动生成的示例工作流，展示了基本的 LLM 对话流程。',
+      graphData: sampleGraph,
+      status: 'draft',
+      // No browserId means it's public/system
+    });
+
+    return await this.workflowRepository.save(workflow);
   }
 }

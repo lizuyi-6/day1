@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chat Page 诊断</title>
+  <style>
+    body {
+      font-family: 'Courier New', monospace;
+      padding: 20px;
+      background: #1e1e1e;
+      color: #d4d4d4;
+    }
+    .section {
+      margin: 20px 0;
+      padding: 15px;
+      background: #252526;
+      border-left: 3px solid #007acc;
+    }
+    .success { border-left-color: #4ec9b0; }
+    .error { border-left-color: #f48771; }
+    button {
+      background: #007acc;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      cursor: pointer;
+      margin: 5px;
+    }
+    button:hover { background: #005a9e; }
+    #output {
+      background: #1e1e1e;
+      padding: 10px;
+      margin-top: 10px;
+      max-height: 400px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      font-size: 12px;
+    }
+    .log { margin: 5px 0; padding: 5px; }
+    .log-info { color: #4ec9b0; }
+    .log-error { color: #f48771; }
+    .log-success { color: #b5cea8; }
+  </style>
+</head>
+<body>
+  <h1>🔍 Aether Flow - Chat Page 诊断工具</h1>
+
+  <div class="section">
+    <h2>1️⃣ 基础检查</h2>
+    <button onclick="checkBasics()">检查基础信息</button>
+  </div>
+
+  <div class="section">
+    <h2>2️⃣ API 测试</h2>
+    <button onclick="testAPI()">测试 API 请求</button>
+  </div>
+
+  <div class="section">
+    <h2>3️⃣ 路由测试</h2>
+    <button onclick="testRouter()">测试路由跳转</button>
+  </div>
+
+  <div class="section">
+    <h2>📋 输出日志</h2>
+    <div id="output"></div>
+  </div>
+
+  <script>
+    const output = document.getElementById('output');
+
+    function log(message, type = 'info') {
+      const div = document.createElement('div');
+      div.className = `log log-${type}`;
+      div.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+      output.appendChild(div);
+      output.scrollTop = output.scrollHeight;
+      console.log(message);
+    }
+
+    async function checkBasics() {
+      log('=== 基础信息检查 ===', 'info');
+
+      // 当前 URL
+      log(`当前 URL: ${window.location.href}`, 'info');
+      log(`当前路径: ${window.location.pathname}`, 'info');
+
+      // Vue 应用
+      const app = document.querySelector('#app');
+      if (app) {
+        log('✅ 找到 #app 元素', 'success');
+        log(`#app 内容长度: ${app.innerHTML.length}`, 'info');
+      } else {
+        log('❌ 未找到 #app 元素', 'error');
+      }
+
+      // 检查是否有 Vue
+      try {
+        const hasVue = !!document.querySelector('#app').__vue__;
+        log(`Vue 实例: ${hasVue ? '✅ 存在' : '❌ 不存在'}`, hasVue ? 'success' : 'error');
+      } catch (e) {
+        log(`Vue 检查失败: ${e.message}`, 'error');
+      }
+    }
+
+    async function testAPI() {
+      log('=== API 测试 ===', 'info');
+
+      try {
+        log('正在请求 API...', 'info');
+
+        const response = await fetch('http://localhost:3001/workflow?page=1&limit=5&status=published', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+
+        log(`API 响应状态: ${response.status} ${response.statusText}`, response.ok ? 'success' : 'error');
+
+        const data = await response.json();
+        log(`API 返回数据: ${JSON.stringify(data, null, 2)}`, 'success');
+
+        if (data.success && data.data && data.data.items) {
+          log(`✅ 成功获取 ${data.data.items.length} 个工作流 (总共 ${data.data.total} 个)`, 'success');
+
+          data.data.items.forEach((workflow, index) => {
+            log(`   ${index + 1}. ${workflow.name} (ID: ${workflow.id})`, 'info');
+          });
+        } else {
+          log('❌ API 返回数据格式不正确', 'error');
+        }
+      } catch (error) {
+        log(`❌ API 请求失败: ${error.message}`, 'error');
+        log(`错误堆栈: ${error.stack}`, 'error');
+      }
+    }
+
+    async function testRouter() {
+      log('=== 路由测试 ===', 'info');
+
+      // 检查当前路由
+      log(`当前路由: ${window.location.pathname}`, 'info');
+
+      // 尝试导航到 chat 页面
+      log('正在导航到 /chat...', 'info');
+      window.location.href = '/chat';
+
+      log('⏳ 如果页面没有跳转，请手动访问 http://localhost:5173/chat', 'info');
+    }
+
+    // 页面加载时自动运行基础检查
+    window.addEventListener('load', () => {
+      log('🚀 诊断页面已加载', 'success');
+      log('📌 请点击上方按钮开始诊断', 'info');
+      log('', 'info');
+
+      // 自动检查当前路径
+      if (window.location.pathname === '/chat') {
+        log('✅ 当前在 /chat 页面', 'success');
+      } else {
+        log(`⚠️ 当前不在 /chat 页面，而在 ${window.location.pathname}`, 'error');
+        log('💡 建议点击"测试路由跳转"按钮', 'info');
+      }
+    });
+  </script>
+</body>
+</html>

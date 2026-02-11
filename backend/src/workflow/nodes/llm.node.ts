@@ -13,6 +13,7 @@ interface LlmNodeData {
   baseUrl?: string;
   model?: string;
   provider?: string;
+  welcomeMessage?: string;  // 欢迎语配置
 }
 
 interface LlmMessage {

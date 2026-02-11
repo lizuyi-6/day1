@@ -5,8 +5,11 @@ import {
   UploadedFile,
   Get,
   Query,
+  Delete,
+  Param,
   UseGuards,
   BadRequestException,
+  NotFoundException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { KnowledgeService } from './knowledge.service';
@@ -51,5 +54,19 @@ export class KnowledgeController {
   @Get('search')
   async search(@Query('q') query: string, @User() user: any) {
     return this.knowledgeService.search(query);
+  }
+
+  @Get('documents')
+  async getDocuments(
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 20,
+    @User() user: any,
+  ) {
+    return this.knowledgeService.getDocuments(page, limit);
+  }
+
+  @Delete('documents/:fileName')
+  async deleteDocuments(@Param('fileName') fileName: string, @User() user: any) {
+    return this.knowledgeService.deleteDocuments(fileName);
   }
 }
