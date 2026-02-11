@@ -28,8 +28,7 @@
             <div class="lg:col-span-7 relative h-[500px] lg:h-[600px] w-full">
               <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] h-[120%] bg-gradient-to-tr from-sand/40 to-primary/10 rounded-full blur-3xl -z-10"></div>
               <div class="w-full h-full relative rounded-2xl overflow-hidden shadow-2xl bg-white dark:bg-[#2a241e] group border border-white/20">
-                <div class="absolute inset-0 bg-center bg-cover opacity-90 transition-transform duration-[20s] ease-linear group-hover:scale-105" data-alt="Minimalist abstract UI interface with soft shadows and flowing lines" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDyq4mP_qcAZe3xxa1H4u1QgH01i4beQcqnk-2Z-4cJ3Y37pgraVPyzBXLfOEO-PgP1b2DMxPwomQKYX1kbI6wLsfDS4k0NPTt8URN5PQzV9YRW2HohzApC3UT6Z7dPuA36V77S2URU0uK4t7-LONan_WvyYhg8qqsqGPj1QdrYzLhiAr0Hgmgctbt0crUHXEGi-ouGcjj2ACy0e06KTB9NV3476Y4F_kj2puMPoKO6hLwFEpDAK9-PFL-QaWa0SJNXZ5HU_N6AUCY');">
-                </div>
+                <div class="absolute inset-0 bg-gradient-to-br from-sand/30 via-primary/10 to-white/40 dark:from-sand/20 dark:via-primary/5 dark:to-white/10 opacity-90 transition-transform duration-[20s] ease-linear group-hover:scale-105"></div>
 
                 <!-- Processing Stream Header -->
                 <div class="absolute top-0 left-0 right-0 p-8 z-20">

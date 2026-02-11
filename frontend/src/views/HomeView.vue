@@ -1,15 +1,24 @@
 <script setup lang="ts">
+import { onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { Database, GitBranch, MessageSquare, ArrowRight, Activity, LayoutGrid, Workflow, User } from 'lucide-vue-next'
 import Logo from '@/components/layout/Logo.vue'
 import { RouterLink } from 'vue-router'
+import { useScrollAnimations } from '@/composables/useScrollAnimations'
 
 const router = useRouter()
 const route = useRoute()
 
+// Initialize scroll animations
+useScrollAnimations()
+
+onMounted(() => {
+  document.body.classList.add('page-loaded')
+})
+
 const navLinks = [
   { name: '仪表盘', path: '/dashboard', icon: LayoutGrid },
-  { name: '工作流', path: '/workflow', icon: Workflow },
+  { name: '工作流', path: '/workflows', icon: Workflow },
   { name: '对话', path: '/chat', icon: MessageSquare },
   { name: '知识库', path: '/knowledge', icon: Database },
 ]
@@ -48,7 +57,7 @@ const navLinks = [
       <div class="max-w-6xl mx-auto">
 
         <!-- Hero Section -->
-        <div class="mb-16 text-center animate-scale-in">
+        <div class="mb-16 text-center">
           <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white dark:bg-white/5 border border-sand/30 dark:border-white/10 shadow-sm mb-8 backdrop-blur-sm">
             <span class="size-2 rounded-full bg-primary animate-pulse"></span>
             <span class="text-xs font-bold text-charcoal/80 dark:text-sand/80 tracking-widest uppercase">系统运行正常</span>
@@ -67,7 +76,7 @@ const navLinks = [
           <!-- Knowledge Base Card -->
           <RouterLink
             to="/knowledge"
-            class="group bg-white/60 dark:bg-[#2a241e]/60 backdrop-blur-md rounded-2xl border border-sand/30 dark:border-white/10 shadow-sm hover:shadow-xl hover:shadow-primary/5 hover:border-primary/30 cursor-pointer overflow-hidden transition-all duration-300 relative animate-from-left delay-100"
+            class="group bg-white/60 dark:bg-[#2a241e]/60 backdrop-blur-md rounded-2xl border border-sand/30 dark:border-white/10 shadow-sm hover:shadow-xl hover:shadow-primary/5 hover:border-primary/30 cursor-pointer overflow-hidden transition-all duration-300 relative"
           >
             <div class="absolute inset-0 bg-gradient-to-tr from-primary/0 to-primary/0 group-hover:to-primary/5 transition-all duration-500"></div>
             <div class="p-8 relative z-10">
@@ -86,8 +95,8 @@ const navLinks = [
 
           <!-- Workflow Engine Card -->
           <RouterLink
-            to="/workflow"
-            class="group bg-white/60 dark:bg-[#2a241e]/60 backdrop-blur-md rounded-2xl border border-sand/30 dark:border-white/10 shadow-sm hover:shadow-xl hover:shadow-primary/5 hover:border-primary/30 cursor-pointer overflow-hidden transition-all duration-300 relative animate-from-left delay-200"
+            to="/workflows"
+            class="group bg-white/60 dark:bg-[#2a241e]/60 backdrop-blur-md rounded-2xl border border-sand/30 dark:border-white/10 shadow-sm hover:shadow-xl hover:shadow-primary/5 hover:border-primary/30 cursor-pointer overflow-hidden transition-all duration-300 relative"
           >
              <div class="absolute inset-0 bg-gradient-to-tr from-primary/0 to-primary/0 group-hover:to-primary/5 transition-all duration-500"></div>
             <div class="p-8 relative z-10">
@@ -107,7 +116,7 @@ const navLinks = [
           <!-- Agent Chat Card -->
           <RouterLink
             to="/chat"
-            class="group bg-white/60 dark:bg-[#2a241e]/60 backdrop-blur-md rounded-2xl border border-sand/30 dark:border-white/10 shadow-sm hover:shadow-xl hover:shadow-primary/5 hover:border-primary/30 cursor-pointer overflow-hidden transition-all duration-300 relative animate-from-left delay-300"
+            class="group bg-white/60 dark:bg-[#2a241e]/60 backdrop-blur-md rounded-2xl border border-sand/30 dark:border-white/10 shadow-sm hover:shadow-xl hover:shadow-primary/5 hover:border-primary/30 cursor-pointer overflow-hidden transition-all duration-300 relative"
           >
              <div class="absolute inset-0 bg-gradient-to-tr from-primary/0 to-primary/0 group-hover:to-primary/5 transition-all duration-500"></div>
             <div class="p-8 relative z-10">

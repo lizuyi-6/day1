@@ -1,5 +1,3 @@
-import { ref } from 'vue'
-
 export function useScroll() {
   const scrollToSection = (id: string, closeMenu?: () => void) => {
     const element = document.getElementById(id)

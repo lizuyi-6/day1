@@ -1,8 +1,44 @@
 <script setup lang="ts">
 import { Handle, Position } from '@vue-flow/core'
 import { FileCode, Play } from 'lucide-vue-next'
+import type { Variable } from '@/types/variable'
 
-defineProps(['data', 'selected'])
+const props = defineProps<{
+  data: any
+  selected: boolean
+}>()
+
+const inputs = computed<Variable[]>(() => {
+  return [
+    {
+      name: 'code',
+      type: 'string',
+      description: '代码脚本（支持变量引用）',
+      defaultValue: props.data.code || ''
+    },
+    {
+      name: 'inputData',
+      type: 'object',
+      description: '从上游节点接收的数据',
+      defaultValue: ''
+    }
+  ]
+})
+
+const outputs = computed<Variable[]>(() => {
+  return [
+    {
+      name: 'result',
+      type: 'any',
+      description: '执行结果'
+    },
+    {
+      name: 'error',
+      type: 'string',
+      description: '错误信息（如果有）'
+    }
+  ]
+})
 </script>
 
 <template>
@@ -27,13 +63,17 @@ defineProps(['data', 'selected'])
         </div>
     </div>
 
-    <!-- Body -->
+    <!-- Body - Input Variables List -->
     <div class="p-3 space-y-2">
-         <div class="rounded border border-orange-100 bg-orange-50/30 p-2 relative overflow-hidden group">
-            <div class="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                <span class="text-[9px] font-mono text-orange-400">py</span>
+         <div v-for="(input, index) in inputs" :key="input.name" 
+              class="rounded border border-orange-100 bg-orange-50/30 p-2">
+            <div class="flex items-center justify-between mb-1">
+                <span class="text-[10px] font-bold text-orange-400 uppercase">{{ input.name }}</span>
+                <span class="text-[10px] font-mono text-orange-300">{{ input.type }}</span>
             </div>
-            <pre class="text-[10px] font-mono text-orange-900 leading-relaxed overflow-hidden">{{ data.code ? data.code.substring(0, 60) + (data.code.length > 60 ? '...' : '') : '# Write your python code...' }}</pre>
+            <p class="text-[10px] text-orange-700 line-clamp-2 leading-relaxed">
+                {{ input.description }}
+            </p>
         </div>
     </div>
 
@@ -41,6 +81,10 @@ defineProps(['data', 'selected'])
     <div class="flex items-center justify-between border-t border-orange-50 bg-orange-50/30 px-3 py-2 rounded-b-md">
         <div class="flex items-center gap-1.5">
             <span class="text-[9px] font-medium text-orange-600">v3.10</span>
+        </div>
+        <div class="flex items-center gap-2 text-[9px] text-orange-400">
+            <span>输出:</span>
+            <span class="font-mono">{{ outputs.map(o => o.name).join(', ') }}</span>
         </div>
     </div>
 
@@ -53,4 +97,3 @@ defineProps(['data', 'selected'])
             class="!w-2.5 !h-2.5 !bg-white !border-2 !border-orange-500 !rounded-full !-mr-[5px]" />
   </div>
 </template>
-

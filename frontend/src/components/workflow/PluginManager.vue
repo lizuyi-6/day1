@@ -1,67 +1,55 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import { Puzzle, Zap, Globe, Database, Clock, Shield, Sparkles, Plus, Toggle } from 'lucide-vue-next'
+import { ref, onMounted } from 'vue'
+import { Puzzle, Zap, Globe, Database, Clock, Shield, Sparkles, Plus } from 'lucide-vue-next'
+import PluginConfigDialog, { type PluginConfigField } from './PluginConfigDialog.vue'
+import { pluginService, type Plugin } from '@/services/pluginService'
 
-interface Plugin {
-  id: string
-  name: string
-  description: string
+interface PluginWithIcon extends Plugin {
   icon: any
-  category: 'productivity' | 'integration' | 'data' | 'utility' | 'security'
-  enabled: boolean
-  config?: Record<string, unknown>
 }
 
-const plugins = ref<Plugin[]>([
-  {
-    id: '1',
-    name: '网页抓取',
-    description: '从任何网站抓取内容，自动提取文本和结构化数据',
-    icon: Globe,
-    category: 'integration',
-    enabled: true
-  },
-  {
-    id: '2',
-    name: '数据库连接',
-    description: '连接 MySQL、PostgreSQL、MongoDB 等数据库',
-    icon: Database,
-    category: 'data',
-    enabled: true
-  },
-  {
-    id: '3',
-    name: '定时任务',
-    description: '设置 Cron 表达式，定时触发工作流',
-    icon: Clock,
-    category: 'utility',
-    enabled: false
-  },
-  {
-    id: '4',
-    name: '内容安全',
-    description: '自动检测和过滤敏感内容',
-    icon: Shield,
-    category: 'security',
-    enabled: true
-  },
-  {
-    id: '5',
-    name: '智能摘要',
-    description: '自动生成长文本摘要和关键点提取',
-    icon: Sparkles,
-    category: 'productivity',
-    enabled: true
-  },
-  {
-    id: '6',
-    name: '快速执行',
-    description: '缓存常用查询结果，提升响应速度',
-    icon: Zap,
-    category: 'utility',
-    enabled: false
+const plugins = ref<PluginWithIcon[]>([])
+const showInstallDialog = ref(false)
+const availablePlugins = ref<any[]>([])
+const selectedPlugin = ref<Plugin | null>(null)
+const isLoading = ref(false)
+
+const iconMap = {
+  '1': Globe,
+  '2': Database,
+  '3': Clock,
+  '4': Shield,
+  '5': Sparkles,
+  '6': Zap,
+}
+
+const loadPlugins = async () => {
+  isLoading.value = true
+  try {
+    const loaded = await pluginService.getAll()
+    plugins.value = loaded.map(p => ({
+      ...p,
+      icon: iconMap[p.id as keyof typeof iconMap] || Puzzle,
+    }))
+  } catch (error) {
+    console.error('Failed to load plugins:', error)
+  } finally {
+    isLoading.value = false
   }
-])
+}
+
+const loadAvailablePlugins = async () => {
+  try {
+    availablePlugins.value = await pluginService.getAvailable()
+  } catch (error) {
+    console.error('Failed to load available plugins:', error)
+  }
+}
+
+onMounted(() => {
+  loadPlugins()
+  loadAvailablePlugins()
+})
 
 const categoryNames = {
   productivity: '生产力',
@@ -87,8 +75,59 @@ const togglePlugin = (id: string) => {
 }
 
 const configurePlugin = (plugin: Plugin) => {
-  // TODO: 打开配置弹窗
-  console.log('配置插件:', plugin.name)
+  selectedPlugin.value = plugin
+}
+
+const handleSaveConfig = async (pluginId: string, config: Record<string, unknown>) => {
+  try {
+    const plugin = plugins.value.find(p => p.id === pluginId)
+    if (plugin) {
+      await pluginService.update(pluginId, { config })
+      plugin.config = config
+    }
+  } catch (error) {
+    console.error('Failed to save plugin config:', error)
+    alert('保存配置失败')
+  }
+  selectedPlugin.value = null
+}
+
+const handleInstallPlugin = async (pluginData: any) => {
+  if (!confirm(`确定要安装插件 "${pluginData.name}" 吗？`)) return
+
+  try {
+    const installed = await pluginService.create({
+      name: pluginData.name,
+      description: pluginData.description,
+      category: pluginData.category,
+      packageName: pluginData.packageName,
+      version: pluginData.version,
+    })
+
+    plugins.value.push({
+      ...installed,
+      icon: iconMap[installed.id as keyof typeof iconMap] || Puzzle,
+    })
+
+    showInstallDialog.value = false
+    alert('插件安装成功！')
+  } catch (error: any) {
+    console.error('Failed to install plugin:', error)
+    alert(error.response?.data?.message || '安装插件失败')
+  }
+}
+
+const handleTogglePlugin = async (id: string) => {
+  const plugin = plugins.value.find(p => p.id === id)
+  if (!plugin) return
+
+  try {
+    const updated = await pluginService.update(id, { enabled: !plugin.enabled })
+    plugin.enabled = updated.enabled
+  } catch (error) {
+    console.error('Failed to toggle plugin:', error)
+    alert('切换插件状态失败')
+  }
 }
 </script>
 
@@ -101,6 +140,7 @@ const configurePlugin = (plugin: Plugin) => {
         <p class="text-[10px] text-slate-500 mt-0.5">扩展工作流功能的插件</p>
       </div>
       <button
+        @click="showInstallDialog = true"
         class="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 text-white text-xs font-semibold rounded-md hover:bg-indigo-700 transition-colors shadow-sm"
       >
         <Plus :size="14" />
@@ -131,7 +171,7 @@ const configurePlugin = (plugin: Plugin) => {
               <div class="flex items-center justify-between mb-1">
                 <h3 class="text-sm font-bold text-slate-900">{{ plugin.name }}</h3>
                 <button
-                  @click="togglePlugin(plugin.id)"
+                  @click="handleTogglePlugin(plugin.id)"
                   class="shrink-0 relative w-10 h-5 rounded-full transition-colors"
                   :class="plugin.enabled ? 'bg-indigo-600' : 'bg-slate-200'"
                 >
@@ -162,7 +202,7 @@ const configurePlugin = (plugin: Plugin) => {
               配置
             </button>
             <button
-              @click="togglePlugin(plugin.id)"
+              @click="handleTogglePlugin(plugin.id)"
               class="flex-1 text-[10px] text-slate-600 hover:text-red-600 font-medium py-1.5 hover:bg-red-50 rounded transition-colors"
             >
               禁用
@@ -180,6 +220,63 @@ const configurePlugin = (plugin: Plugin) => {
           <span class="w-2 h-2 rounded-full" :class="categoryColors[key as keyof typeof categoryColors].split(' ')[0]" />
           {{ name }}
         </span>
+      </div>
+    </div>
+    
+    <PluginConfigDialog
+      :plugin="selectedPlugin"
+      @close="selectedPlugin = null"
+      @save="handleSaveConfig"
+    />
+    
+    <div
+      v-if="showInstallDialog"
+      class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+      @click.self="showInstallDialog = false"
+    >
+      <div class="bg-white rounded-lg shadow-xl w-[480px] max-h-[80vh] overflow-y-auto">
+        <div class="px-6 py-4 border-b border-light">
+          <h3 class="text-sm font-bold text-slate-900">选择要安装的插件</h3>
+        </div>
+        <div class="p-6 space-y-3">
+          <div
+            v-for="plugin in availablePlugins"
+            :key="plugin.id"
+            class="p-4 border border-light rounded-lg hover:border-indigo-300 hover:bg-indigo-50/30 cursor-pointer transition-colors"
+            @click="handleInstallPlugin(plugin)"
+          >
+            <div class="flex items-start gap-3">
+              <div class="h-10 w-10 rounded-lg flex items-center justify-center shrink-0 bg-slate-100">
+                <Puzzle :size="20" />
+              </div>
+              <div class="flex-1">
+                <div class="flex items-center gap-2 mb-1">
+                  <h4 class="text-sm font-bold text-slate-900">{{ plugin.name }}</h4>
+                  <span
+                    class="px-2 py-0.5 rounded text-[9px] font-medium border"
+                    :class="categoryColors[plugin.category]"
+                  >
+                    {{ categoryNames[plugin.category] }}
+                  </span>
+                </div>
+                <p class="text-[10px] text-slate-500">{{ plugin.description }}</p>
+                <p class="text-[9px] text-slate-400 mt-1">版本: {{ plugin.version }}</p>
+              </div>
+            </div>
+          </div>
+          
+          <div v-if="availablePlugins.length === 0" class="text-center py-8 text-slate-400 text-xs">
+            暂无可安装的插件
+          </div>
+        </div>
+        <div class="px-6 py-4 border-t border-light bg-slate-50 flex justify-end">
+          <button
+            @click="showInstallDialog = false"
+            class="px-4 py-2 text-xs text-slate-600 hover:bg-slate-100 rounded transition-colors"
+          >
+            取消
+          </button>
+        </div>
       </div>
     </div>
   </div>

@@ -1,14 +1,21 @@
 <script setup lang="ts">
 import { RouterView } from 'vue-router'
+import DevModePanel from './components/dev/DevModePanel.vue'
+import ErrorBoundary from './components/common/ErrorBoundary.vue'
 </script>
 
 <template>
   <div class="min-h-screen bg-slate-50 font-ui text-slate-900 selection:bg-indigo-100 selection:text-indigo-900">
-    <RouterView v-slot="{ Component }">
-      <Transition name="page" mode="out-in">
+    <ErrorBoundary>
+      <RouterView v-slot="{ Component }">
+      <keep-alive :max="10">
         <component :is="Component" />
-      </Transition>
+      </keep-alive>
     </RouterView>
+    </ErrorBoundary>
+
+    <!-- 开发模式面板 -->
+    <DevModePanel />
   </div>
 </template>
 

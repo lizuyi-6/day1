@@ -1,17 +1,21 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import { Save, Play, ChevronDown, Code, Bug, Rocket } from 'lucide-vue-next'
+import { ref, computed } from 'vue'
+import { Save, Play, ChevronDown, Code, Bug, Rocket, Loader2 } from 'lucide-vue-next'
 
 defineProps<{
   saveStatus: string
   lastSaved: string | null
+  isExecuting?: boolean
+  executionProgress?: number
 }>()
 
 defineEmits<{
   (e: 'save'): void
   (e: 'deploy'): void
   (e: 'debug'): void
+  (e: 'debug'): void
   (e: 'publish'): void
+  (e: 'run'): void
 }>()
 
 const showDeployMenu = ref(false)
@@ -56,6 +60,20 @@ const debugMode = ref(false)
           >
               <Bug :size="14" />
               <span>{{ debugMode ? '调试中' : '调试' }}</span>
+          </button>
+
+          <button
+            @click="$emit('run')"
+            :disabled="isExecuting"
+            class="flex items-center gap-1.5 px-3 py-1.5 rounded-md transition-colors text-xs font-medium border"
+            :class="isExecuting
+              ? 'text-slate-400 bg-slate-50 border-slate-200 cursor-not-allowed'
+              : 'text-emerald-600 bg-emerald-50 hover:bg-emerald-100 border-emerald-200'"
+            title="运行工作流"
+          >
+              <Loader2 v-if="isExecuting" :size="14" class="animate-spin" />
+              <Play v-else :size="14" />
+              <span>{{ isExecuting ? `执行中 ${executionProgress || 0}%` : '运行' }}</span>
           </button>
 
           <button @click="$emit('save')"

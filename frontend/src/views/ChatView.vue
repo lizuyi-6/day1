@@ -1,9 +1,20 @@
 <script setup lang="ts">
-import { ref, nextTick } from 'vue'
-import { API_BASE_URL } from '@/config/api'
-import { Send, Bot, User, Cpu, Sparkles, MessageSquare, LayoutGrid, Workflow, Database } from 'lucide-vue-next'
-import Logo from '@/components/layout/Logo.vue'
-import { RouterLink, useRoute } from 'vue-router'
+import { ref, nextTick, onMounted } from 'vue';
+import { API_BASE_URL } from '@/config/api';
+import { post, get } from '@/utils/api';
+import { workflowService } from '@/services/workflowService';
+import { Send, Bot, User, Cpu, Sparkles, MessageSquare, LayoutGrid, Workflow, Database } from 'lucide-vue-next';
+import Logo from '@/components/layout/Logo.vue';
+import { RouterLink, useRoute } from 'vue-router';
+import { useScrollAnimations } from '@/composables/useScrollAnimations';
+import { TYPING_CHUNK_SIZE, TYPING_DELAY } from '@/config/constants';
+
+console.log('🚀 ChatView component loading...');
+
+const route = useRoute()
+
+// Initialize scroll animations
+useScrollAnimations()
 
 interface Message {
   role: 'user' | 'assistant' | 'system'
@@ -11,24 +22,130 @@ interface Message {
   timestamp: number
 }
 
-const route = useRoute()
+interface Agent {
+    id: string;
+    name: string;
+    description?: string;
+    status: 'active' | 'inactive';
+}
+
 const input = ref('')
 const messages = ref<Message[]>([
   {
     role: 'system',
-    content: 'Aether Agent 已初始化。准备就绪。',
+    content: '请从左侧选择一个助手（工作流）开始对话。',
     timestamp: Date.now()
   }
 ])
 const loading = ref(false)
 const chatContainer = ref<HTMLElement | null>(null)
+const agents = ref<Agent[]>([])
+const activeAgentId = ref<string | null>(null)
+const activeAgent = ref<any>(null)
 
 const navLinks = [
   { name: '仪表盘', path: '/dashboard', icon: LayoutGrid },
-  { name: '工作流', path: '/workflow', icon: Workflow },
+  { name: '工作流', path: '/workflows', icon: Workflow },
   { name: '对话', path: '/chat', icon: MessageSquare },
   { name: '知识库', path: '/knowledge', icon: Database },
 ]
+
+onMounted(async () => {
+  console.log('✅ ChatView mounted, loading agents...');
+  document.body.classList.add('page-loaded')
+  await loadAgents()
+})
+
+const loadAgents = async () => {
+    console.log('🔄 loadAgents() called - Starting to load agents...');
+    loading.value = true;
+    try {
+        console.log('🔄 Loading agents (deployed workflows)...');
+        // Use workflowService to get workflows properly with auth headers
+        // Pass status parameter to filter only published (deployed) workflows
+        const result = await workflowService.getAllWorkflows(1, 50, 'published');
+        console.log('📥 Agents result:', result);
+        
+        if (result.success && result.workflows) {
+            console.log('✅ Found deployed workflows:', result.workflows.length);
+            agents.value = result.workflows.map((wf: any) => ({
+                id: wf.id,
+                name: wf.name,
+                description: wf.description || '自定义工作流',
+                status: 'inactive' // Default status, active one will be set on click
+            }))
+            
+            // Auto-select the first agent if available
+            if (agents.value.length > 0) {
+                await selectAgent(agents.value[0].id)
+            } else {
+                messages.value = [
+                    {
+                        role: 'system',
+                        content: '暂无已部署的工作流。请先在"工作流"页面部署一个工作流。',
+                        timestamp: Date.now()
+                    }
+                ]
+            }
+        } else {
+            console.error('Failed to load agents:', result.error)
+            messages.value = [
+                {
+                    role: 'system',
+                    content: `加载工作流失败: ${result.error || '未知错误'}`,
+                    timestamp: Date.now()
+                }
+            ]
+        }
+    } catch (e) {
+        console.error('Failed to load agents', e)
+    } finally {
+        loading.value = false;
+    }
+}
+
+const selectAgent = async (id: string) => {
+    activeAgentId.value = id
+    try {
+        // Use workflowService to fetch specific workflow details
+        const result = await workflowService.fetchWorkflow(id);
+        
+        if (result.success && result.workflow) {
+            // Adapt the workflow object structure if needed
+            activeAgent.value = result.workflow
+            
+            // If the workflow object doesn't have a name property at the top level (it might be inside data), use the one from the agents list
+            if (!activeAgent.value.name) {
+                const agentInfo = agents.value.find(a => a.id === id);
+                if (agentInfo) {
+                    activeAgent.value.name = agentInfo.name;
+                }
+            }
+            
+            messages.value = [
+                {
+                    role: 'system',
+                    content: `已切换至助手: ${activeAgent.value.name || '未命名助手'}。准备就绪。`,
+                    timestamp: Date.now()
+                }
+            ]
+        } else {
+            console.error('Failed to fetch workflow details:', result.error)
+            messages.value.push({
+                role: 'system',
+                content: `错误: 无法加载助手详情 (${result.error || '未知错误'})`,
+                timestamp: Date.now()
+            })
+        }
+    } catch (e) {
+        console.error('Error selecting agent:', e)
+        messages.value.push({
+            role: 'system',
+            content: '加载助手失败，请重试。',
+            timestamp: Date.now()
+        })
+    }
+}
 
 const scrollToBottom = async () => {
   await nextTick()
@@ -46,12 +163,12 @@ const typeMessage = async (fullText: string) => {
   })
 
   // Simple typing simulation
-  const chunkSize = 2 // chars per tick
+  const chunkSize = TYPING_CHUNK_SIZE; // chars per tick
   for (let i = 0; i < fullText.length; i += chunkSize) {
     if (messages.value[msgIndex]) {
-        messages.value[msgIndex].content += fullText.slice(i, i + chunkSize)
-        await new Promise(r => setTimeout(r, 20)) // 20ms delay
-        await scrollToBottom()
+      messages.value[msgIndex].content += fullText.slice(i, i + chunkSize);
+      await new Promise((r) => setTimeout(r, TYPING_DELAY));
+      await scrollToBottom();
     }
   }
 }
@@ -70,18 +187,41 @@ const sendMessage = async () => {
   await scrollToBottom()
 
   try {
-    // Simulating response for UI check
-    setTimeout(async () => {
-        loading.value = false
-        await typeMessage("我已经分析了您的请求。基于当前工作流配置，我可以执行部署序列。如果您需要更多细节，请随时告诉我。")
-    }, 1000)
+    if (!activeAgentId.value) {
+        throw new Error('请先选择一个助手（工作流）。');
+    }
 
-  } catch (e) {
+    // Determine input variable
+    let inputVar = 'userInput';
+    if (activeAgent.value && activeAgent.value.graphData && activeAgent.value.graphData.nodes) {
+        const startNode = activeAgent.value.graphData.nodes.find((n: any) => n.type === 'start');
+        if (startNode && startNode.data && startNode.data.inputs && startNode.data.inputs.length > 0) {
+            inputVar = startNode.data.inputs[0].name;
+        }
+    }
+    
+    // Construct payload with fallback aliases to ensure compatibility
+    const payload: Record<string, any> = { [inputVar]: userMsg };
+    if (inputVar !== 'userInput') payload['userInput'] = userMsg;
+    if (inputVar !== 'input') payload['input'] = userMsg;
+
+    // Use workflowService.executeWorkflow instead of direct post
+    // This ensures consistent error handling and auth headers
+    const result = await workflowService.executeWorkflow(activeAgentId.value, payload);
+
+    if (result) {
+         // 假设输出在 result 字段 (根据示例工作流定义)
+         const outputText = result.result || JSON.stringify(result);
+         loading.value = false;
+         await typeMessage(outputText);
+    }
+
+  } catch (e: any) {
     console.error(e)
     loading.value = false
     messages.value.push({
         role: 'system',
-        content: '与 Agent 服务通信时出错。',
+        content: `错误: ${e.message || '与 Agent 服务通信时出错。'}`,
         timestamp: Date.now()
     })
   }
@@ -120,34 +260,39 @@ const sendMessage = async () => {
       <!-- Sidebar -->
       <aside class="w-72 bg-white/50 dark:bg-[#2a241e]/50 backdrop-blur-sm border-r border-sand/30 dark:border-white/10 flex flex-col hidden md:flex z-10">
         <div class="p-5 border-b border-sand/30 dark:border-white/10">
-          <h2 class="text-xs font-bold text-khaki uppercase tracking-[0.2em]">活跃 Agent</h2>
+          <h2 class="text-xs font-bold text-khaki uppercase tracking-[0.2em]">活跃助手 (工作流)</h2>
         </div>
-        <div class="p-3 space-y-2">
-          <!-- Active Item -->
-          <div class="flex items-center gap-3 p-3 rounded-xl bg-white dark:bg-white/5 border border-sand/30 dark:border-white/10 shadow-sm cursor-pointer group transition-all hover:shadow-md">
+        <div class="p-3 space-y-2 overflow-y-auto">
+          <!-- Dynamic Agent List -->
+          <div 
+            v-for="agent in agents" 
+            :key="agent.id"
+            @click="selectAgent(agent.id)"
+            class="flex items-center gap-3 p-3 rounded-xl border shadow-sm cursor-pointer group transition-all hover:shadow-md"
+            :class="activeAgentId === agent.id 
+                ? 'bg-white dark:bg-white/10 border-sand/30 dark:border-white/10' 
+                : 'hover:bg-sand/20 dark:hover:bg-white/5 border-transparent opacity-70 hover:opacity-100'"
+          >
             <div class="relative">
               <div class="size-10 rounded-full bg-primary/10 flex items-center justify-center text-primary group-hover:scale-105 transition-transform">
                   <Bot :size="20" />
               </div>
-              <span class="absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full bg-primary border-2 border-white dark:border-[#2a241e]"></span>
+              <span v-if="activeAgentId === agent.id" class="absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full bg-primary border-2 border-white dark:border-[#2a241e]"></span>
             </div>
             <div class="flex-1 min-w-0">
-              <div class="text-sm font-bold text-charcoal dark:text-white truncate">编排器</div>
-              <div class="text-xs text-khaki truncate">GPT-4 Turbo</div>
+              <div class="text-sm font-bold text-charcoal dark:text-white truncate">{{ agent.name }}</div>
+              <div class="text-xs text-khaki truncate">{{ agent.description }}</div>
             </div>
           </div>
-
-          <!-- Inactive Item -->
-          <div class="flex items-center gap-3 p-3 rounded-xl hover:bg-sand/20 dark:hover:bg-white/5 border border-transparent cursor-pointer transition-colors opacity-70 hover:opacity-100">
-            <div class="relative">
-               <div class="size-10 rounded-full bg-sand/30 dark:bg-white/10 flex items-center justify-center text-charcoal/60 dark:text-sand/60">
-                  <Cpu :size="20" />
-              </div>
-            </div>
-            <div class="flex-1 min-w-0">
-              <div class="text-sm font-medium text-charcoal dark:text-sand truncate">代码解释器</div>
-              <div class="text-xs text-khaki/60 truncate">未连接</div>
-            </div>
+          
+          <div v-if="agents.length === 0" class="p-4 text-center flex flex-col items-center gap-2">
+              <span class="text-xs text-khaki">暂无已部署的工作流</span>
+              <button 
+                @click="loadAgents" 
+                class="text-[10px] text-primary hover:text-primary/80 underline cursor-pointer"
+              >
+                刷新列表
+              </button>
           </div>
         </div>
       </aside>

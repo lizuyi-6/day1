@@ -2,16 +2,18 @@ import {
   IsString,
   IsNotEmpty,
   IsOptional,
+  MinLength,
   MaxLength,
   IsUUID,
 } from 'class-validator';
 
 /**
- * 聊天流式请求 DTO
+ * DTO for streaming chat requests
  */
 export class ChatStreamDto {
   @IsString({ message: 'Message must be a string' })
   @IsNotEmpty({ message: 'Message is required' })
+  @MinLength(1, { message: 'Message must be at least 1 character long' })
   @MaxLength(5000, { message: 'Message must not exceed 5000 characters' })
   message: string;
 

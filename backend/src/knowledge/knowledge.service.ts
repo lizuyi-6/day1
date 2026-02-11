@@ -21,7 +21,6 @@ export class KnowledgeService {
       console.warn('⚠️  OPENAI_API_KEY 未配置，向量化功能将使用随机向量');
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const config: any = {
       apiKey: apiKey || 'fallback-key-placeholder',
     };
@@ -75,14 +74,66 @@ export class KnowledgeService {
   }
 
   async search(query: string, topK = 3) {
-    // 混合检索：关键词搜索 + (可选的) 语义相似度
-    const keywordResults = await this.knowledgeRepository
-      .createQueryBuilder('knowledge')
-      .where('knowledge.content LIKE :query', { query: `%${query}%` })
-      .orWhere('knowledge.fileName LIKE :query', { query: `%${query}%` })
-      .limit(topK)
-      .getMany();
+    // 输入验证：防止SQL注入和DoS攻击
+    if (!query || typeof query !== 'string') {
+      throw new Error('Query must be a non-empty string');
+    }
 
-    return keywordResults;
+    if (query.length > 500) {
+      throw new Error(
+        'Query length exceeds maximum allowed length of 500 characters',
+      );
+    }
+
+    // 转义特殊字符以防止SQL注入
+    const sanitizedQuery = query
+      .replace(/[%_\\]/g, '\\$&') // 转义LIKE通配符和反斜杠
+      .trim();
+
+    if (!sanitizedQuery) {
+      return [];
+    }
+
+    // 限制topK以防止性能问题
+    const safeTopK = Math.min(Math.max(1, topK), 100);
+
+    try {
+      // 生成查询向量
+      const queryVector = await this.embeddings.embedQuery(sanitizedQuery);
+      
+      // 使用 pgvector 进行余弦相似度搜索
+      const results = await this.knowledgeRepository
+        .createQueryBuilder('knowledge')
+        .orderBy('knowledge.embedding <=> :vector', 'ASC')
+        .setParameters({ vector: JSON.stringify(queryVector) })
+        .limit(safeTopK)
+        .getMany();
+
+      // 如果向量检索没有结果（例如 embedding 为空），降级到关键词搜索
+      if (results.length === 0) {
+        return await this.knowledgeRepository
+          .createQueryBuilder('knowledge')
+          .where('knowledge.content LIKE :query', { query: `%${sanitizedQuery}%` })
+          .orWhere('knowledge.fileName LIKE :query2', {
+            query2: `%${sanitizedQuery}%`,
+          })
+          .limit(safeTopK)
+          .getMany();
+      }
+
+      return results;
+    } catch (error) {
+      console.error('Vector search failed, falling back to keyword search:', error);
+      
+      // 降级方案：使用 LIKE 进行关键词搜索
+      return await this.knowledgeRepository
+        .createQueryBuilder('knowledge')
+        .where('knowledge.content LIKE :query', { query: `%${sanitizedQuery}%` })
+        .orWhere('knowledge.fileName LIKE :query2', {
+          query2: `%${sanitizedQuery}%`,
+        })
+        .limit(safeTopK)
+        .getMany();
+    }
   }
 }

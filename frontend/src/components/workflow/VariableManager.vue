@@ -1,54 +1,38 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { Plus, Trash2, Edit2, Eye, EyeOff, Code, FileText, Hash } from 'lucide-vue-next'
-
-interface Variable {
-  id: string
-  name: string
-  type: 'string' | 'number' | 'boolean' | 'json' | 'array'
-  value: string | number | boolean
-  description: string
-  isSecret: boolean
-}
+import { variableService, type Variable } from '@/services/variableService'
 
 const showAddVar = ref(false)
 const editingVar = ref<Variable | null>(null)
 const searchQuery = ref('')
+const isLoading = ref(false)
 
-const variables = ref<Variable[]>([
-  {
-    id: '1',
-    name: 'API_ENDPOINT',
-    type: 'string',
-    value: 'https://api.example.com',
-    description: 'API 基础地址',
-    isSecret: false
-  },
-  {
-    id: '2',
-    name: 'MAX_TOKENS',
-    type: 'number',
-    value: 4096,
-    description: '最大令牌数',
-    isSecret: false
-  },
-  {
-    id: '3',
-    name: 'OPENAI_API_KEY',
-    type: 'string',
-    value: 'your-openai-api-key',
-    description: 'OpenAI API 密钥',
-    isSecret: true
-  },
-  {
-    id: '4',
-    name: 'ENABLE_LOGGING',
-    type: 'boolean',
-    value: true,
-    description: '是否启用日志',
-    isSecret: false
+const variables = ref<Variable[]>([])
+
+const filteredVariables = computed(() => {
+  if (!searchQuery.value) return variables.value
+  const query = searchQuery.value.toLowerCase()
+  return variables.value.filter(v =>
+    v.name.toLowerCase().includes(query) ||
+    v.description.toLowerCase().includes(query)
+  )
+})
+
+const loadVariables = async () => {
+  isLoading.value = true
+  try {
+    variables.value = await variableService.getAll()
+  } catch (error) {
+    console.error('Failed to load variables:', error)
+  } finally {
+    isLoading.value = false
   }
-])
+}
+
+onMounted(() => {
+  loadVariables()
+})
 
 const newVar = ref<Variable>({
   id: '',
@@ -67,40 +51,70 @@ const typeIcons = {
   array: Code
 }
 
-const addVariable = () => {
+const addVariable = async () => {
   if (!newVar.value.name) return
 
-  variables.value.push({
-    ...newVar.value,
-    id: Date.now().toString()
-  })
+  try {
+    const created = await variableService.create({
+      name: newVar.value.name,
+      type: newVar.value.type,
+      value: String(newVar.value.value || ''),
+      isSecret: newVar.value.isSecret,
+      description: newVar.value.description
+    })
 
-  showAddVar.value = false
-  newVar.value = {
-    id: '',
-    name: '',
-    type: 'string',
-    value: '',
-    description: '',
-    isSecret: false
+    variables.value.push(created)
+    showAddVar.value = false
+    newVar.value = {
+      id: '',
+      name: '',
+      type: 'string',
+      value: '',
+      description: '',
+      isSecret: false
+    }
+  } catch (error) {
+    console.error('Failed to create variable:', error)
+    alert('创建变量失败')
   }
 }
 
-const deleteVariable = (id: string) => {
-  variables.value = variables.value.filter(v => v.id !== id)
+const deleteVariable = async (id: string) => {
+  if (!confirm('确定要删除这个变量吗？')) return
+
+  try {
+    await variableService.delete(id)
+    variables.value = variables.value.filter(v => v.id !== id)
+  } catch (error) {
+    console.error('Failed to delete variable:', error)
+    alert('删除变量失败')
+  }
 }
 
 const editVariable = (variable: Variable) => {
   editingVar.value = { ...variable }
 }
 
-const saveVariable = () => {
-  if (editingVar.value) {
+const saveVariable = async () => {
+  if (!editingVar.value) return
+
+  try {
+    const updated = await variableService.update(editingVar.value.id, {
+      name: editingVar.value.name,
+      type: editingVar.value.type,
+      value: String(editingVar.value.value || ''),
+      isSecret: editingVar.value.isSecret,
+      description: editingVar.value.description
+    })
+
     const idx = variables.value.findIndex(v => v.id === editingVar.value!.id)
     if (idx !== -1) {
-      variables.value[idx] = { ...editingVar.value }
+      variables.value[idx] = updated
     }
     editingVar.value = null
+  } catch (error) {
+    console.error('Failed to update variable:', error)
+    alert('更新变量失败')
   }
 }
 
@@ -108,30 +122,26 @@ const cancelEdit = () => {
   editingVar.value = null
 }
 
-const toggleSecret = (variable: Variable) => {
-  variable.isSecret = !variable.isSecret
-}
-
-const filteredVariables = ref(variables)
-
 const formatValue = (variable: Variable) => {
   if (variable.isSecret) {
     return '••••••••'
   }
 
   if (variable.type === 'boolean') {
-    return variable.value ? 'true' : 'false'
+    return variable.value === 'true' ? 'true' : 'false'
   }
 
   if (variable.type === 'json' || variable.type === 'array') {
     try {
-      return JSON.stringify(variable.value).slice(0, 30) + (JSON.stringify(variable.value).length > 30 ? '...' : '')
+      const parsed = JSON.parse(variable.value)
+      const str = JSON.stringify(parsed)
+      return str.slice(0, 30) + (str.length > 30 ? '...' : '')
     } catch {
-      return String(variable.value)
+      return variable.value.slice(0, 30) + (variable.value.length > 30 ? '...' : '')
     }
   }
 
-  return String(variable.value)
+  return variable.value
 }
 
 const getTypeColor = (type: Variable['type']) => {
@@ -220,13 +230,6 @@ const getTypeName = (type: Variable['type']) => {
 
             <!-- Actions -->
             <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-              <button
-                @click="toggleSecret(variable)"
-                class="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded transition-colors"
-                :title="variable.isSecret ? '显示' : '隐藏'"
-              >
-                <component :is="variable.isSecret ? EyeOff : Eye" :size="14" />
-              </button>
               <button
                 @click="editVariable(variable)"
                 class="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded transition-colors"

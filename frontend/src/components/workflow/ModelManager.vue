@@ -1,48 +1,34 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, onMounted } from 'vue'
 import { Plus, Trash2, Edit2, Check, X, Key, Globe, Server } from 'lucide-vue-next'
+import { modelService, type ModelConfig, type TestResult } from '@/services/modelService'
 
-interface ModelConfig {
-  id: string
-  name: string
-  provider: 'openai' | 'anthropic' | 'azure' | 'custom'
-  apiKey: string
-  baseUrl?: string
-  model: string
+interface ModelConfigWithStatus extends ModelConfig {
   status: 'connected' | 'error' | 'testing'
 }
 
 const showAddModel = ref(false)
 const editingModel = ref<ModelConfig | null>(null)
-const testResult = ref<{ success: boolean; message: string } | null>(null)
+const testResult = ref<TestResult | null>(null)
+const isLoading = ref(false)
 
-const models = ref<ModelConfig[]>([
-  {
-    id: '1',
-    name: 'GPT-4 Turbo',
-    provider: 'openai',
-    apiKey: 'your-openai-api-key',
-    model: 'gpt-4-turbo',
-    status: 'connected'
-  },
-  {
-    id: '2',
-    name: 'Claude 3 Opus',
-    provider: 'anthropic',
-    apiKey: 'your-anthropic-api-key',
-    model: 'claude-3-opus-20240229',
-    status: 'connected'
-  },
-  {
-    id: '3',
-    name: '通义千问',
-    provider: 'custom',
-    apiKey: 'your-qwen-api-key',
-    baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
-    model: 'qwen-turbo',
-    status: 'connected'
+const models = ref<ModelConfigWithStatus[]>([])
+
+const loadModels = async () => {
+  isLoading.value = true
+  try {
+    const loaded = await modelService.getAll()
+    models.value = loaded.map(m => ({ ...m, status: 'connected' as const }))
+  } catch (error) {
+    console.error('Failed to load models:', error)
+  } finally {
+    isLoading.value = false
   }
-])
+}
+
+onMounted(() => {
+  loadModels()
+})
 
 const newModel = ref<ModelConfig>({
   id: '',
@@ -50,7 +36,6 @@ const newModel = ref<ModelConfig>({
   provider: 'openai',
   apiKey: '',
   model: '',
-  status: 'testing'
 })
 
 const providerIcons = {
@@ -60,59 +45,103 @@ const providerIcons = {
   custom: '🔧'
 }
 
-const addModel = () => {
-  if (!newModel.value.name || !newModel.value.apiKey) {
-    testResult.value = { success: false, message: '请填写所有必填字段' }
+const addModel = async () => {
+  if (!newModel.value.name || !newModel.value.model) {
+    testResult.value = { success: false, message: '请填写所有必填字段', status: 'error' }
     return
   }
 
-  const model: ModelConfig = {
-    ...newModel.value,
-    id: Date.now().toString(),
-    status: 'testing'
-  }
+  try {
+    const created = await modelService.create({
+      name: newModel.value.name,
+      provider: newModel.value.provider,
+      model: newModel.value.model,
+      apiKey: newModel.value.apiKey,
+      baseUrl: newModel.value.baseUrl,
+    })
 
-  models.value.push(model)
-  showAddModel.value = false
-  testModelConnection(model)
+    models.value.push({ ...created, status: 'testing' as const })
+    showAddModel.value = false
 
-  // 重置表单
-  newModel.value = {
-    id: '',
-    name: '',
-    provider: 'openai',
-    apiKey: '',
-    model: '',
-    status: 'testing'
-  }
-}
-
-const testModelConnection = async (model: ModelConfig) => {
-  // 模拟测试连接
-  setTimeout(() => {
-    const idx = models.value.findIndex(m => m.id === model.id)
+    const result = await modelService.testConnection(created.id)
+    const idx = models.value.findIndex(m => m.id === created.id)
     if (idx !== -1) {
-      models.value[idx].status = Math.random() > 0.2 ? 'connected' : 'error'
+      models.value[idx].status = result.status
     }
-  }, 1000)
+
+    newModel.value = {
+      id: '',
+      name: '',
+      provider: 'openai',
+      apiKey: '',
+      model: '',
+    }
+  } catch (error: any) {
+    console.error('Failed to create model:', error)
+    testResult.value = { success: false, message: error.response?.data?.message || '创建失败', status: 'error' }
+  }
 }
 
-const deleteModel = (id: string) => {
-  models.value = models.value.filter(m => m.id !== id)
+const testModelConnection = async (model: ModelConfigWithStatus) => {
+  const idx = models.value.findIndex(m => m.id === model.id)
+  if (idx !== -1) {
+    models.value[idx].status = 'testing'
+  }
+
+  try {
+    const result = await modelService.testConnection(model.id)
+    testResult.value = result
+
+    const newIdx = models.value.findIndex(m => m.id === model.id)
+    if (newIdx !== -1) {
+      models.value[newIdx].status = result.status
+    }
+  } catch (error: any) {
+    const newIdx = models.value.findIndex(m => m.id === model.id)
+    if (newIdx !== -1) {
+      models.value[newIdx].status = 'error'
+    }
+    testResult.value = { success: false, message: error.response?.data?.message || '连接失败', status: 'error' }
+  }
 }
 
-const editModel = (model: ModelConfig) => {
+const deleteModel = async (id: string) => {
+  if (!confirm('确定要删除这个模型吗？')) return
+
+  try {
+    await modelService.delete(id)
+    models.value = models.value.filter(m => m.id !== id)
+  } catch (error) {
+    console.error('Failed to delete model:', error)
+    alert('删除模型失败')
+  }
+}
+
+const editModel = (model: ModelConfigWithStatus) => {
   editingModel.value = { ...model }
 }
 
-const saveModel = () => {
-  if (editingModel.value) {
+const saveModel = async () => {
+  if (!editingModel.value) return
+
+  try {
+    const updated = await modelService.update(editingModel.value.id, {
+      name: editingModel.value.name,
+      provider: editingModel.value.provider,
+      model: editingModel.value.model,
+      apiKey: editingModel.value.apiKey,
+      baseUrl: editingModel.value.baseUrl,
+    })
+
     const idx = models.value.findIndex(m => m.id === editingModel.value!.id)
     if (idx !== -1) {
-      models.value[idx] = { ...editingModel.value }
+      models.value[idx] = { ...updated, status: 'testing' as const }
       testModelConnection(models.value[idx])
     }
     editingModel.value = null
+  } catch (error: any) {
+    console.error('Failed to update model:', error)
+    testResult.value = { success: false, message: error.response?.data?.message || '更新失败', status: 'error' }
   }
 }
 

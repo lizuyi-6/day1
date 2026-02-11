@@ -1,0 +1,232 @@
+import { Injectable, Logger } from '@nestjs/common';
+import { GraphData, ExecutionContext, BaseNode } from '../nodes/node.interface';
+import { StartNode } from '../nodes/start.node';
+import { LlmNode } from '../nodes/llm.node';
+import { EndNode } from '../nodes/end.node';
+import { LRUCache } from 'lru-cache';
+
+interface GraphStructure {
+  adjacencyList: Map<string, string[]>
+  inDegree: Map<string, number>
+  nodeMap: Map<string, any>
+}
+
+@Injectable()
+export class WorkflowRunner {
+    private readonly logger = new Logger(WorkflowRunner.name);
+    private nodeRegistry: Record<string, BaseNode> = {};
+
+    private graphCache = new LRUCache<string, GraphStructure>({
+        max: 100,
+        ttl: 1000 * 60 * 5 // 5分钟过期
+    });
+
+    constructor() {
+        this.registerNodes();
+    }
+
+    private registerNodes() {
+        // TODO: Use dependency injection or a cleaner registry mechanism
+        const startNode = new StartNode();
+        const llmNode = new LlmNode();
+        const endNode = new EndNode();
+
+        this.nodeRegistry[startNode.type] = startNode;
+        this.nodeRegistry[llmNode.type] = llmNode;
+        this.nodeRegistry[endNode.type] = endNode;
+    }
+
+    async execute(graph: GraphData, initialInputs: Record<string, any> = {}) {
+        this.logger.log('Starting workflow execution');
+
+        // Detect cycles before execution
+        if (this.detectCycle(graph)) {
+            throw new Error('Workflow graph contains a cycle');
+        }
+
+        const timeout = 30000; // 30秒超时
+        const maxSteps = parseInt(process.env.MAX_WORKFLOW_STEPS || '100');
+
+        const timeoutPromise = new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('Workflow execution timeout')), timeout)
+        );
+
+        // Check cache for graph structure
+        const graphKey = JSON.stringify(graph);
+        let graphStructure = this.graphCache.get(graphKey);
+
+        if (!graphStructure) {
+            graphStructure = this.buildGraphStructure(graph);
+            this.graphCache.set(graphKey, graphStructure);
+        }
+
+        try {
+            return await Promise.race([
+                this.executeWithGraph(graphStructure, graph, initialInputs, maxSteps),
+                timeoutPromise
+            ]);
+        } catch (error) {
+            if (error.message === 'Workflow execution timeout') {
+                throw new Error(`Workflow execution exceeded ${timeout}ms`);
+            }
+            throw error;
+        }
+    }
+
+    private buildGraphStructure(graph: GraphData): GraphStructure {
+        const adjacencyList = new Map<string, string[]>();
+        const inDegree = new Map<string, number>();
+        const nodeMap = new Map(graph.nodes.map((node) => [node.id, node]));
+
+        graph.nodes.forEach((node) => {
+            adjacencyList.set(node.id, []);
+            inDegree.set(node.id, 0);
+        });
+
+        graph.edges.forEach((edge) => {
+            const list = adjacencyList.get(edge.source);
+            if (list) {
+                list.push(edge.target);
+            }
+            inDegree.set(edge.target, (inDegree.get(edge.target) || 0) + 1);
+        });
+
+        return { adjacencyList, inDegree, nodeMap };
+    }
+
+    private async executeWithGraph(
+        graphStructure: GraphStructure,
+        graph: GraphData,
+        initialInputs: Record<string, any>,
+        maxSteps: number = 100
+    ) {
+        const { adjacencyList, inDegree, nodeMap } = graphStructure;
+
+        // Clone inDegree for this execution
+        const executionInDegree = new Map(inDegree);
+
+        // Topological Sort (Kahn's Algorithm) or Just Queue-based execution
+        // Since we want to pass data, a queue based approach starting from 0-in-degree nodes works.
+        const queue: string[] = [];
+        const context: ExecutionContext = {
+            workflowId: 'temp-id', // TODO: Pass real ID
+            variables: { ...initialInputs },
+            nodeOutputs: {},
+        };
+
+        graph.nodes.forEach((node) => {
+            if (executionInDegree.get(node.id) === 0) {
+                queue.push(node.id);
+            }
+        });
+
+        const executionOrder: string[] = [];
+        let steps = 0;
+
+        while (queue.length > 0) {
+            if (steps >= maxSteps) {
+                throw new Error(`Workflow execution exceeded maximum steps (${maxSteps})`);
+            }
+            steps++;
+
+            const nodeId = queue.shift();
+            if (!nodeId) continue;
+
+            executionOrder.push(nodeId);
+
+            const nodeDef = nodeMap.get(nodeId);
+            if (!nodeDef) continue;
+
+            const nodeInstance = this.nodeRegistry[nodeDef.type];
+            if (!nodeInstance) {
+                this.logger.warn(`Unknown node type: ${nodeDef.type}`);
+            } else {
+                try {
+                    // Gather inputs from previous nodes
+                    const inputs = this.gatherInputs(nodeId, graph, context);
+
+                    this.logger.log(`Executing node ${nodeId} (${nodeDef.type})`);
+                    const outputs = await nodeInstance.execute({ ...nodeDef.data, ...inputs }, context);
+
+                    context.nodeOutputs[nodeId] = outputs;
+                } catch (error) {
+                    this.logger.error(`Error executing node ${nodeId}: ${error.message}`);
+                    throw error;
+                }
+            }
+
+            const neighbors = adjacencyList.get(nodeId) || [];
+            for (const neighbor of neighbors) {
+                const currentInDegree = executionInDegree.get(neighbor);
+                if (currentInDegree !== undefined) {
+                    executionInDegree.set(neighbor, currentInDegree - 1);
+                    if (executionInDegree.get(neighbor) === 0) {
+                        queue.push(neighbor);
+                    }
+                }
+            }
+        }
+
+        return context;
+    }
+
+    private gatherInputs(nodeId: string, graph: GraphData, context: ExecutionContext) {
+        const inputs: Record<string, any> = {};
+
+        // Find edges pointing to this node
+        const incomingEdges = graph.edges.filter(edge => edge.target === nodeId);
+
+        for (const edge of incomingEdges) {
+            const sourceOutput = context.nodeOutputs[edge.source];
+            if (sourceOutput) {
+                // If handles are used, map specific outputs. Otherwise merge all.
+                // For now, simple merge.
+                Object.assign(inputs, sourceOutput);
+            }
+        }
+
+        return inputs;
+    }
+
+    private detectCycle(graph: GraphData): boolean {
+        const visited = new Set<string>();
+        const recursionStack = new Set<string>();
+
+        // Build adjacency list for cycle detection
+        const adjacencyMap = new Map<string, string[]>();
+        graph.nodes.forEach((node) => {
+            adjacencyMap.set(node.id, []);
+        });
+        graph.edges.forEach((edge) => {
+            const list = adjacencyMap.get(edge.source);
+            if (list) {
+                list.push(edge.target);
+            }
+        });
+
+        const hasCycle = (nodeId: string): boolean => {
+            visited.add(nodeId);
+            recursionStack.add(nodeId);
+
+            const neighbors = adjacencyMap.get(nodeId) || [];
+            for (const neighbor of neighbors) {
+                if (!visited.has(neighbor)) {
+                    if (hasCycle(neighbor)) return true;
+                } else if (recursionStack.has(neighbor)) {
+                    return true;
+                }
+            }
+
+            recursionStack.delete(nodeId);
+            return false;
+        };
+
+        for (const node of graph.nodes) {
+            if (!visited.has(node.id)) {
+                if (hasCycle(node.id)) return true;
+            }
+        }
+
+        return false;
+    }
+}

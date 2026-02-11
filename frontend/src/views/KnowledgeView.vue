@@ -1,24 +1,58 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import { UploadCloud, FileText, CheckCircle2, AlertCircle, Plus, LayoutGrid, Workflow, MessageSquare, Database, User } from 'lucide-vue-next'
+import { ref, onMounted } from 'vue'
+import { UploadCloud, FileText, CheckCircle2, AlertCircle, Plus, LayoutGrid, Workflow, MessageSquare, Database, User, Search, Trash2, ExternalLink } from 'lucide-vue-next'
 import Logo from '@/components/layout/Logo.vue'
 import { RouterLink, useRoute } from 'vue-router'
+import { useScrollAnimations } from '@/composables/useScrollAnimations'
+import { post, get } from '@/utils/api'
+import { API_BASE_URL } from '@/config/api'
 
 const route = useRoute()
+
+// Initialize scroll animations
+useScrollAnimations()
+
+onMounted(async () => {
+  document.body.classList.add('page-loaded')
+  await loadDocuments()
+})
+
 const fileInput = ref<HTMLInputElement | null>(null)
 const uploading = ref(false)
 const uploadStatus = ref('')
-const files = ref<Array<{ name: string, status: 'indexed' | 'processing', date: string }>>([
-  { name: 'technical_spec_v1.pdf', status: 'indexed', date: '2023-10-24' },
-  { name: 'api_documentation.md', status: 'indexed', date: '2023-11-02' }
-])
+const searchQuery = ref('')
+const searchResults = ref<any[]>([])
+const isSearching = ref(false)
+
+interface Document {
+  id: string
+  title: string
+  content?: string
+  status: 'indexed' | 'processing' | 'error'
+  createdAt: string
+  chunkCount?: number
+}
+
+const documents = ref<Document[]>([])
 
 const navLinks = [
   { name: '仪表盘', path: '/dashboard', icon: LayoutGrid },
-  { name: '工作流', path: '/workflow', icon: Workflow },
+  { name: '工作流', path: '/workflows', icon: Workflow },
   { name: '对话', path: '/chat', icon: MessageSquare },
   { name: '知识库', path: '/knowledge', icon: Database },
 ]
+
+const loadDocuments = async () => {
+    // 暂时模拟获取列表，实际应该添加 GET /knowledge/documents 接口
+    // 这里我们直接用搜索接口获取所有（如果支持空搜索）或者显示上传历史
+    // 由于后端可能没有专门的列出所有文档的接口，我们暂时只显示新上传的
+    // 或者通过搜索 "*" 来获取
+    try {
+        // Mock initial list or implement backend list endpoint
+    } catch (error) {
+        console.error('Failed to load documents', error)
+    }
+}
 
 const triggerUpload = () => {
   fileInput.value?.click()
@@ -32,6 +66,8 @@ const handleFileChange = async (event: Event) => {
       await uploadFile(file)
     }
   }
+  // Reset input
+  if (fileInput.value) fileInput.value.value = ''
 }
 
 const uploadFile = async (file: File) => {
@@ -40,18 +76,60 @@ const uploadFile = async (file: File) => {
 
   const formData = new FormData()
   formData.append('file', file)
+  // Optional: add title/description
+  formData.append('title', file.name)
 
-  // Simulate upload
-  setTimeout(() => {
-      files.value.push({
-          name: file.name || '无标题',
-          status: 'indexed',
-          date: new Date().toISOString().split('T')[0]
+  try {
+      const response = await fetch(`${API_BASE_URL}/knowledge/upload`, {
+          method: 'POST',
+          body: formData,
+          // Don't set Content-Type header, let browser set it with boundary
       })
+      
+      const result = await response.json()
+      
+      if (result.success) {
+           documents.value.unshift({
+              id: result.data.id || Date.now().toString(),
+              title: file.name,
+              status: 'indexed',
+              createdAt: new Date().toISOString().split('T')[0],
+              chunkCount: result.data.chunks?.length || 0
+           })
+           uploadStatus.value = '上传成功'
+      } else {
+           throw new Error(result.error || '上传失败')
+      }
+  } catch (error) {
+      console.error('Upload failed:', error)
+      uploadStatus.value = '上传失败'
+      alert('上传失败: ' + (error instanceof Error ? error.message : '未知错误'))
+  } finally {
       uploading.value = false
-      uploadStatus.value = ''
-  }, 1500)
+      setTimeout(() => uploadStatus.value = '', 3000)
+  }
 }
+
+const handleSearch = async () => {
+    if (!searchQuery.value.trim()) return
+    
+    isSearching.value = true
+    try {
+        const response = await post(`${API_BASE_URL}/knowledge/search`, {
+            query: searchQuery.value,
+            limit: 5
+        })
+        
+        if (response.success) {
+            searchResults.value = response.data
+        }
+    } catch (error) {
+        console.error('Search failed:', error)
+    } finally {
+        isSearching.value = false
+    }
+}
+
 </script>
 
 <template>
@@ -104,7 +182,7 @@ const uploadFile = async (file: File) => {
 
         <!-- Upload Zone (Empty State / Active) -->
         <div
-            v-if="files.length === 0"
+            v-if="documents.length === 0"
             @click="triggerUpload"
             class="group border-2 border-dashed border-sand dark:border-white/20 rounded-2xl p-16 flex flex-col items-center justify-center text-center hover:border-primary hover:bg-primary/5 cursor-pointer transition-all duration-300 mb-10"
         >
@@ -121,21 +199,21 @@ const uploadFile = async (file: File) => {
         <div v-else class="bg-white/60 dark:bg-[#2a241e]/60 backdrop-blur-md border border-sand/30 dark:border-white/10 rounded-2xl shadow-sm overflow-hidden animate-scale-in">
             <div class="px-6 py-4 border-b border-sand/30 dark:border-white/10 bg-sand/20 dark:bg-white/5 flex items-center justify-between">
                 <h3 class="text-xs font-bold text-khaki uppercase tracking-[0.15em]">已索引文档库</h3>
-                <span class="text-xs font-medium text-charcoal/60 dark:text-sand/60">{{ files.length }} 个文件</span>
+                <span class="text-xs font-medium text-charcoal/60 dark:text-sand/60">{{ documents.length }} 个文件</span>
             </div>
             <div class="divide-y divide-sand/30 dark:divide-white/5">
-                <div v-for="(file, idx) in files" :key="idx" class="px-6 py-4 flex items-center gap-4 hover:bg-white/50 dark:hover:bg-white/5 transition-colors group cursor-default">
+                <div v-for="(doc, idx) in documents" :key="idx" class="px-6 py-4 flex items-center gap-4 hover:bg-white/50 dark:hover:bg-white/5 transition-colors group cursor-default">
                     <div class="size-10 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0 group-hover:bg-primary group-hover:text-white transition-colors">
                         <FileText :size="20" />
                     </div>
                     <div class="flex-1 min-w-0">
-                        <h4 class="text-sm font-bold text-charcoal dark:text-white truncate mb-1">{{ file.name }}</h4>
-                        <p class="text-xs text-khaki dark:text-sand/50 font-medium">{{ file.date }} • 12KB</p>
+                        <h4 class="text-sm font-bold text-charcoal dark:text-white truncate mb-1">{{ doc.title }}</h4>
+                        <p class="text-xs text-khaki dark:text-sand/50 font-medium">{{ doc.createdAt }} • {{ doc.chunkCount || 0 }} 块</p>
                     </div>
                     <div class="flex items-center gap-2 shrink-0">
                         <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-white dark:bg-white/10 text-primary border border-primary/20 shadow-sm">
                             <CheckCircle2 :size="12" />
-                            已索引
+                            {{ doc.status === 'indexed' ? '已索引' : '处理中' }}
                         </span>
                     </div>
                 </div>

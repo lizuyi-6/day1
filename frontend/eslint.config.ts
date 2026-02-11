@@ -23,4 +23,11 @@ export default defineConfigWithVueTs(
   ...pluginOxlint.configs['flat/recommended'],
 
   skipFormatting,
+
+  {
+    rules: {
+      'no-console': process.env.NODE_ENV === 'production' ? ['warn', { allow: ['warn', 'error'] }] : 'off',
+      'no-debugger': process.env.NODE_ENV === 'production' ? 'error' : 'off',
+    },
+  },
 )

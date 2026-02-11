@@ -1,15 +1,83 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, shallowRef } from 'vue'
 import { Handle, Position } from '@vue-flow/core'
 import { Sparkles, Activity, Clock } from 'lucide-vue-next'
+import type { Variable } from '@/types/variable'
 
-const props = defineProps(['data', 'selected'])
+const props = defineProps<{
+  data: any
+  selected: boolean
+}>()
 
-const modelDisplay = computed(() => {
-    return props.data.model || 'gpt-4-turbo'
-})
+const modelDisplay = computed(() => props.data.model || 'gpt-4-turbo')
 
 const isStreaming = computed(() => props.data.status === 'streaming')
+
+const inputs = computed<Variable[]>(() => {
+  return [
+    {
+      name: 'prompt',
+      type: 'string',
+      description: '提示词（支持变量引用）',
+      defaultValue: props.data.prompt || ''
+    },
+    {
+      name: 'systemPrompt',
+      type: 'string',
+      description: '系统提示词',
+      defaultValue: props.data.systemPrompt || ''
+    },
+    {
+      name: 'temperature',
+      type: 'number',
+      description: '温度参数',
+      defaultValue: props.data.temperature || 0.7
+    },
+    {
+      name: 'maxTokens',
+      type: 'number',
+      description: '最大令牌数',
+      defaultValue: props.data.maxTokens || 4096
+    }
+  ]
+})
+
+const outputs = computed<Variable[]>(() => {
+  return [
+    {
+      name: 'response',
+      type: 'string',
+      description: '模型响应'
+    },
+    {
+      name: 'usage',
+      type: 'object',
+      description: '令牌使用量'
+    }
+  ]
+})
+
+const localPrompt = shallowRef(props.data.prompt || '')
+const localTemperature = shallowRef(props.data.temperature || 0.7)
+const localMaxTokens = shallowRef(props.data.maxTokens || 4096)
+
+const updatePrompt = (event: Event) => {
+  const value = (event.target as HTMLInputElement).value
+  localPrompt.value = value
+  props.data.prompt = value
+}
+
+const updateTemperature = (event: Event) => {
+  const value = parseFloat((event.target as HTMLInputElement).value)
+  localTemperature.value = value
+  props.data.temperature = value
+}
+
+const updateMaxTokens = (event: Event) => {
+  const value = parseInt((event.target as HTMLInputElement).value)
+  localMaxTokens.value = value
+  props.data.maxTokens = value
+}
 </script>
 
 <template>
@@ -32,20 +100,39 @@ const isStreaming = computed(() => props.data.status === 'streaming')
         </div>
     </div>
 
-    <!-- Body -->
+    <!-- Body - Input Variables List -->
     <div class="p-3 space-y-2">
-        <div class="rounded border border-indigo-100 bg-indigo-50/30 p-2">
+        <div v-for="(input, index) in inputs" :key="input.name" 
+             class="rounded border border-indigo-100 bg-indigo-50/30 p-2">
             <div class="flex items-center justify-between mb-1">
-                <span class="text-[9px] font-bold text-indigo-400 uppercase">Input</span>
-                <span class="text-[9px] font-mono text-indigo-300">str</span>
+                <span class="text-[10px] font-bold text-indigo-400 uppercase">{{ input.name }}</span>
+                <span class="text-[9px] font-mono text-indigo-300">{{ input.type }}</span>
             </div>
-            <p class="text-[10px] text-indigo-900 line-clamp-2 leading-relaxed">
-                {{ data.prompt || 'Waiting for prompt...' }}
+            <p class="text-[10px] text-indigo-700 line-clamp-2 leading-relaxed">
+                {{ input.description }}
             </p>
+            <input type="text"
+                   v-if="input.name === 'prompt'"
+                   :value="localPrompt"
+                   @input="updatePrompt"
+                   class="w-full text-[10px] text-indigo-900 bg-indigo-100/50 border border-indigo-200 rounded px-2 py-1 outline-none focus:border-indigo-500"
+                   placeholder="输入提示词..." />
+            <input type="range"
+                   v-if="input.name === 'temperature'"
+                   :value="localTemperature"
+                   @input="updateTemperature"
+                   min="0" max="1" step="0.1"
+                   class="w-full accent-indigo-600" />
+            <input type="number"
+                   v-if="input.name === 'maxTokens'"
+                   :value="localMaxTokens"
+                   @input="updateMaxTokens"
+                   class="w-full text-[10px] text-indigo-900 bg-indigo-100/50 border border-indigo-200 rounded px-2 py-1 outline-none focus:border-indigo-500"
+                   placeholder="4096" />
         </div>
     </div>
 
-    <!-- Footer -->
+    <!-- Footer - Output Variables List -->
     <div class="flex items-center justify-between border-t border-indigo-50 bg-indigo-50/30 px-3 py-2 rounded-b-md">
         <div class="flex items-center gap-1.5">
             <Activity :size="10" class="text-indigo-400" />
@@ -66,4 +153,3 @@ const isStreaming = computed(() => props.data.status === 'streaming')
             class="!w-2.5 !h-2.5 !bg-white !border-2 !border-indigo-500 !rounded-full !-mr-[5px]" />
   </div>
 </template>
-

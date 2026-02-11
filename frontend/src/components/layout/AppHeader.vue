@@ -18,13 +18,15 @@ const closeMenu = () => {
 </script>
 
 <template>
-  <header class="w-full border-b border-sand/50 dark:border-khaki/20 px-8 py-8 lg:px-24 z-10 bg-background-light/90 dark:bg-background-dark/90 backdrop-blur-sm sticky top-0">
-    <div class="mx-auto max-w-[1400px] flex items-center justify-between">
+  <header class="w-full border-b border-sand/50 dark:border-khaki/20 px-4 py-4 lg:px-8 z-10 bg-background-light/90 dark:bg-background-dark/90 backdrop-blur-sm sticky top-0">
+    <div class="w-full grid grid-cols-[1fr_auto_1fr] items-center">
       <!-- Logo -->
-      <Logo @click="scrollToTop" />
+      <div class="flex justify-start">
+        <Logo @click="scrollToTop" />
+      </div>
 
       <!-- Desktop Navigation -->
-      <nav class="hidden md:flex items-center gap-12">
+      <nav class="hidden md:flex items-center gap-16 justify-center">
         <a
           v-for="link in NAV_LINKS"
           :key="link.sectionId"
@@ -37,7 +39,7 @@ const closeMenu = () => {
       </nav>
 
       <!-- CTA Button & Mobile Menu Toggle -->
-      <div class="flex items-center gap-4">
+      <div class="flex items-center justify-end gap-4">
         <RouterLink
           to="/dashboard"
           class="hidden md:flex cursor-pointer items-center justify-center rounded-full h-10 px-6 bg-primary hover:bg-primary/90 text-white text-sm font-bold transition-all duration-300 shadow-md hover:shadow-lg"
@@ -51,6 +53,7 @@ const closeMenu = () => {
         </button>
       </div>
     </div>
+
 
     <!-- Mobile Menu Overlay -->
     <div

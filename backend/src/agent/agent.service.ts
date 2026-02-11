@@ -18,9 +18,14 @@ export class AgentService {
     private readonly sessionService: SessionService,
   ) {
     // 初始化 Qwen LLM
-    const apiKey = process.env.OPENAI_API_KEY;
-    const baseURL = process.env.OPENAI_BASE_URL;
-    const modelName = process.env.LLM_MODEL || 'qwen-flash';
+    // Demo Override: Force all LLM nodes to use Qwen
+    const apiKey = 'sk-9dd62d22ea0b439eb96f6800d6c7749a';
+    const baseURL = 'https://dashscope.aliyuncs.com/compatible-mode/v1';
+    const modelName = 'qwen-flash';
+    
+    // const apiKey = process.env.OPENAI_API_KEY;
+    // const baseURL = process.env.OPENAI_BASE_URL;
+    // const modelName = process.env.LLM_MODEL || 'qwen-flash';
 
     if (apiKey) {
       const config: any = {
@@ -60,11 +65,10 @@ export class AgentService {
     // In a real system, we'd do topological sort on nodes/edges.
     // Here we just find the 'start' node and follow edges.
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const graph: any = workflow.graphData;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
     let nodes: any[] = [];
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
     let edges: any[] = [];
 
     // Support Vue Flow structure (nodes/edges) OR X6 structure (cells)
@@ -192,7 +196,9 @@ export class AgentService {
     if (message.startsWith('/run ') || message.startsWith('Run ')) {
       const workflowName = message.replace(/^\/run |^Run /i, '').trim();
       const allWorkflows = await this.workflowService.findAll();
-      const workflow = allWorkflows.find((w) => w.name.includes(workflowName));
+      const workflow = allWorkflows.items.find((w) =>
+        w.name.includes(workflowName),
+      );
 
       if (workflow) {
         const result = await this.executeWorkflow(workflow.id, message);

@@ -1,8 +1,26 @@
 <script setup lang="ts">
 import { Handle, Position } from '@vue-flow/core'
 import { Package } from 'lucide-vue-next'
+import { computed } from 'vue'
+import type { Variable } from '@/types/variable'
 
-defineProps(['data', 'selected'])
+const props = defineProps<{
+  data: any
+  selected: boolean
+}>()
+
+const inputs = computed<Variable[]>(() => [])
+
+const outputs = computed<Variable[]>(() => {
+  return [
+    {
+      name: 'value',
+      type: 'any',
+      description: '变量值（可以是固定值或变量引用）',
+      defaultValue: props.data.value || ''
+    }
+  ]
+})
 </script>
 
 <template>
@@ -17,6 +35,14 @@ defineProps(['data', 'selected'])
          <div class="var-name">{{ data.variableName || 'var_name' }}</div>
          <div class="arrow">⬇</div>
          <div class="var-value">{{ data.value || 'value' }}</div>
+    </div>
+
+    <!-- Footer - Output Variables List -->
+    <div class="flex items-center justify-between border-t border-blue-100 bg-blue-50/30 px-3 py-2 rounded-b-md">
+        <div class="flex items-center gap-2 text-[9px] text-blue-400">
+            <span>输出:</span>
+            <span class="font-mono">{{ outputs.map(o => o.name).join(', ') }}</span>
+        </div>
     </div>
 
     <Handle type="target" :position="Position.Left" class="handle-input" />
@@ -37,8 +63,8 @@ defineProps(['data', 'selected'])
 }
 
 .variable-node:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(52, 152, 219, 0.15);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(52, 152, 219, 0.15);
 }
 
 .variable-node.selected {
@@ -89,7 +115,8 @@ defineProps(['data', 'selected'])
     height: 10px;
     border: 2px solid white;
 }
- .handle-output {
+
+.handle-output {
     background: white;
     width: 10px;
     height: 10px;

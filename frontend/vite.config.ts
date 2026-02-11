@@ -1,4 +1,3 @@
-import { fileURLToPath, URL } from 'node:url'
 import path from 'node:path'
 
 import { defineConfig } from 'vite'
@@ -30,8 +29,11 @@ export default defineConfig({
       'lucide-vue-next'
     ]
   },
+  esbuild: {
+    drop: process.env.NODE_ENV === 'production' ? ['console', 'debugger'] : []
+  },
   server: {
-    host: true, // 监听所有地址
+    host: true,
     port: 5173,
     strictPort: false,
     cors: true,

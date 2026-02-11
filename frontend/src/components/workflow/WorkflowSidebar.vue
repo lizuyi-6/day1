@@ -4,6 +4,7 @@ import { Search, ChevronDown, Layers, Box, Braces, Cpu, Plug } from 'lucide-vue-
 import ModelManager from './ModelManager.vue'
 import PluginManager from './PluginManager.vue'
 import VariableManager from './VariableManager.vue'
+import { useAuth } from '@/composables/useAuth'
 
 interface NodeItem {
     type: string
@@ -23,10 +24,15 @@ interface NodeCategory {
 
 defineProps<{
   nodeCategories: NodeCategory[]
+  collapsed?: boolean
 }>()
 
 const searchQuery = defineModel<string>('searchQuery')
 const activeTab = ref('components') // components | variables | models | plugins
+
+// Use auth for user information
+const { getUserFromToken } = useAuth()
+const userInfo = getUserFromToken()
 
 const onDragStart = (event: DragEvent, nodeType: string) => {
   // Stop propagation to prevent parent handlers from interfering
@@ -43,9 +49,10 @@ const onDragStart = (event: DragEvent, nodeType: string) => {
 </script>
 
 <template>
-  <aside class="flex w-72 shrink-0 flex-col border-r border-sand/30 dark:border-white/10 bg-white/60 dark:bg-[#1e1711]/60 backdrop-blur-md z-20 shadow-xl shadow-sand/20">
+  <aside class="flex shrink-0 flex-col border-r border-sand/30 dark:border-white/10 bg-white/60 dark:bg-[#1e1711]/60 backdrop-blur-md z-20 shadow-xl shadow-sand/20 transition-all duration-300 ease-in-out"
+          :class="collapsed ? 'w-16' : 'w-72'">
       <!-- Sidebar Tabs -->
-      <div class="flex border-b border-sand/30 dark:border-white/10">
+      <div v-show="!collapsed" class="flex border-b border-sand/30 dark:border-white/10">
           <button @click="activeTab = 'components'"
               class="flex-1 py-4 text-[10px] font-bold uppercase tracking-widest transition-all border-b-2 hover:bg-white/40 dark:hover:bg-white/5"
               :class="activeTab === 'components' ? 'border-primary text-primary bg-primary/5' : 'border-transparent text-khaki dark:text-sand/60 hover:text-charcoal dark:hover:text-sand'">
@@ -73,7 +80,7 @@ const onDragStart = (event: DragEvent, nodeType: string) => {
       </div>
 
       <!-- Search -->
-      <div class="p-4 border-b border-sand/30 dark:border-white/10">
+      <div v-show="!collapsed" class="p-4 border-b border-sand/30 dark:border-white/10">
           <div class="relative group">
               <Search :size="14" class="absolute left-3 top-3 text-khaki group-focus-within:text-primary transition-colors" />
               <input
@@ -137,11 +144,11 @@ const onDragStart = (event: DragEvent, nodeType: string) => {
       <div class="p-4 border-t border-sand/30 dark:border-white/10 bg-white/40 dark:bg-white/5 backdrop-blur-sm">
           <div class="flex items-center gap-3">
               <div class="h-8 w-8 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-xs font-bold text-primary">
-                  U
+                  {{ userInfo?.name?.charAt(0).toUpperCase() || userInfo?.email?.charAt(0).toUpperCase() || 'U' }}
               </div>
               <div class="flex flex-col">
-                  <span class="text-xs font-bold text-charcoal dark:text-white">用户工作区</span>
-                  <span class="text-[10px] text-khaki">专业版 License</span>
+                  <span class="text-xs font-bold text-charcoal dark:text-white">{{ userInfo?.name || '用户工作区' }}</span>
+                  <span class="text-[10px] text-khaki">{{ userInfo?.email || '专业版 License' }}</span>
               </div>
           </div>
       </div>

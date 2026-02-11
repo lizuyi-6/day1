@@ -16,9 +16,8 @@ export class Knowledge {
   @Column('text')
   content: string;
 
-  // 使用 JSON 存储 embedding 数据（兼容性更好）
-  // 将来可以升级到 pgvector: @Column({ type: 'vector', dimensions: 1536, nullable: true })
-  @Column({ type: 'json', nullable: true })
+  // 使用 pgvector 存储 embedding 数据
+  @Column({ type: 'vector', nullable: true })
   embedding: number[];
 
   @CreateDateColumn()
