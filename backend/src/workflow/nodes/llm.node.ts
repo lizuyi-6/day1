@@ -98,19 +98,26 @@ export class LlmNode extends BaseNode {
         },
       );
 
-      this.logger.log(`LLM node executed successfully: ${response.choices[0]?.message?.content?.substring(0, 50)}...`);
+      const textContent = response.choices[0]?.message?.content || '';
+
+      this.logger.log(`LLM node executed successfully: ${textContent.substring(0, 50)}...`);
       this.logger.log(`LLM node output: ${JSON.stringify({
-        response: response.choices[0]?.message?.content || '',
+        response: textContent,
         prompt,
         model,
         usage: response.usage
       })}`);
 
+      // Return simplified output with clear text field
       return {
-        output_1: response.choices[0]?.message?.content || '',
-        response: response.choices[0]?.message?.content || '',
+        result: textContent,              // Primary text output for easy extraction
+        text: textContent,                // Alternative text field
+        response: textContent,            // LLM response content
+        output_1: textContent,            // Compatibility field
+        // Optional metadata
         prompt,
         model,
+        provider,
         usage: response.usage,
         messages,
       };

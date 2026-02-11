@@ -12,7 +12,7 @@ import {
   MousePointer2, Hand, MessageCircle, MessageSquare, Sparkles, FileCode, GitBranch,
   Database, Globe, Layers, Search, Clock, RotateCcw, Sliders, CheckCircle, XCircle,
   LayoutGrid, Workflow, User, Save, Bug, Rocket, Code, Play, Copy, Trash2, Timer,
-  Bell, Variable, Repeat, Mail, Webhook, Filter, Loader2, History, List, FileText, Terminal
+  Bell, Variable, Repeat, Mail, Webhook, Filter, Loader2, History, List, FileText, Terminal, Camera, Download, X
 } from 'lucide-vue-next'
 import { RouterLink, useRoute } from 'vue-router'
 import Logo from '@/components/layout/Logo.vue'
@@ -51,6 +51,126 @@ const showInfo = (title: string, message?: string) => showToast('info', title, m
 
 const dismissToast = (id: string) => {
   toastMessages.value = toastMessages.value.filter(m => m.id !== id)
+}
+
+// Thumbnail generation
+const generateThumbnail = async () => {
+  if (!vueFlowRef.value) {
+    showError('生成失败', '无法访问工作流画布')
+    return
+  }
+
+  isGeneratingThumbnail.value = true
+  showInfo('正在生成缩略图', '请稍候...')
+
+  try {
+    const html2canvas = (await import('html2canvas')).default
+    const vueFlowElement = vueFlowRef.value.$el?.querySelector('.vue-flow')
+
+    if (!vueFlowElement) {
+      throw new Error('工作流画布元素未找到')
+    }
+
+    // Generate thumbnail with optimized settings
+    const canvas = await html2canvas(vueFlowElement, {
+      backgroundColor: '#f8fafc',
+      scale: 0.5, // Lower scale for smaller file size
+      logging: false,
+      useCORS: true,
+      allowTaint: true,
+      width: vueFlowElement.offsetWidth,
+      height: vueFlowElement.offsetHeight,
+    })
+
+    thumbnailData.value = canvas.toDataURL('image/png', 0.8)
+    showThumbnailPreview.value = true
+    showSuccess('缩略图生成成功', '点击可保存图片')
+  } catch (error: any) {
+    console.error('Failed to generate thumbnail:', error)
+    showError('生成失败', error.message || '无法生成缩略图')
+  } finally {
+    isGeneratingThumbnail.value = false
+  }
+}
+
+const downloadThumbnail = () => {
+  if (!thumbnailData.value) return
+
+  const link = document.createElement('a')
+  link.download = `workflow-${route.params.id || 'new'}-${Date.now()}.png`
+  link.href = thumbnailData.value
+  link.click()
+  showSuccess('下载成功', '缩略图已保存')
+}
+
+const closeThumbnailPreview = () => {
+  showThumbnailPreview.value = false
+}
+
+// Auto layout functionality
+const isAutoLayouting = ref(false)
+
+const autoLayout = async () => {
+  if (nodes.value.length === 0) {
+    showWarning('自动布局', '当前没有节点可以布局')
+    return
+  }
+
+  isAutoLayouting.value = true
+  showInfo('正在自动布局', '正在优化节点位置...')
+
+  try {
+    const dagre = (await import('dagre')).default
+    const g = new dagre.graphlib.Graph()
+    g.setDefaultEdgeLabel(() => ({}))
+    g.setGraph({
+      rankdir: 'LR', // Left to Right
+      nodesep: 100,  // Horizontal spacing
+      ranksep: 150,  // Vertical spacing
+      edgesep: 50,   // Edge spacing
+    })
+
+    // Add nodes to graph
+    nodes.value.forEach((node) => {
+      g.setNode(node.id, { width: 200, height: 80 })
+    })
+
+    // Add edges to graph
+    edges.value.forEach((edge) => {
+      g.setEdge(edge.source, edge.target)
+    })
+
+    // Run layout
+    dagre.layout(g, {rankdir: 'LR'})
+
+    // Apply new positions
+    const newNodes = nodes.value.map((node) => {
+      const gNode = g.node(node.id)
+      if (gNode) {
+        return {
+          ...node,
+          position: {
+            x: gNode.x - 100, // Center the node (width/2)
+            y: gNode.y - 40,  // Center the node (height/2)
+          },
+        }
+      }
+      return node
+    })
+
+    nodes.value = newNodes
+
+    // Fit view to show all nodes
+    await nextTick()
+    await fitView({ padding: 0.2, duration: 500 })
+
+    showSuccess('布局完成', `已优化 ${nodes.value.length} 个节点和 ${edges.value.length} 条连线`)
+  } catch (error: any) {
+    console.error('Auto layout failed:', error)
+    showError('布局失败', error.message || '无法自动布局节点')
+  } finally {
+    isAutoLayouting.value = false
+  }
 }
 
 // 动态导入节点组件（性能优化：按需加载）
@@ -123,6 +243,12 @@ interface ExecutionHistory {
 }
 const executionHistory = ref<ExecutionHistory[]>([])
 const showHistoryPanel = ref(false)
+
+// Thumbnail management
+const showThumbnailPreview = ref(false)
+const thumbnailData = ref<string | null>(null)
+const isGeneratingThumbnail = ref(false)
+const vueFlowRef = ref<InstanceType<typeof VueFlow> | null>(null)
 
 const isDraggingOver = ref(false)
 
@@ -225,8 +351,8 @@ const onDragStart = (event: DragEvent, nodeType: string) => {
 
 // 导航链接
 const navLinks = [
-  { name: '工作台', path: '/dashboard', icon: LayoutGrid },
-  { name: '工作流', path: '/workflow', icon: Workflow },
+  { name: '仪表盘', path: '/dashboard', icon: LayoutGrid },
+  { name: '工作流', path: '/workflows', icon: Workflow },
   { name: '对话', path: '/chat', icon: MessageSquare },
   { name: '知识库', path: '/knowledge', icon: Database }
 ]
@@ -300,7 +426,7 @@ const saveWorkflow = async () => {
 
     if (createResult.success && createResult.workflow) {
       workflowId = createResult.workflow.id
-      console.log('✅ 新工作流创建成功，ID:', workflowId)
+      console.log('  新工作流创建成功，ID:', workflowId)
 
       // 更新URL（不刷新页面）
       window.history.replaceState({}, '', `/workflow/${workflowId}`)
@@ -311,21 +437,21 @@ const saveWorkflow = async () => {
       if (result.success) {
         saveStatus.value = 'saved'
         lastSaved.value = new Date().toLocaleTimeString()
-        console.log('✅ 工作流保存成功！')
+        console.log('工作流保存成功！')
         // 使用更友好的提示
         const notification = document.createElement('div')
-        notification.textContent = '✅ 工作流保存成功！'
+        notification.textContent = '工作流保存成功！'
         notification.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #10b981; color: white; padding: 12px 24px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); z-index: 9999; animation: slideIn 0.3s ease;'
         document.body.appendChild(notification)
         setTimeout(() => notification.remove(), 3000)
       } else {
         saveStatus.value = 'unsaved'
-        console.error('❌ 保存失败:', result.error)
+        console.error('  保存失败:', result.error)
         showError('保存失败', result.error)
       }
     } else {
       saveStatus.value = 'unsaved'
-      console.error('❌ 创建工作流失败:', createResult.error)
+      console.error('  创建工作流失败:', createResult.error)
       showError('创建工作流失败', createResult.error)
       return
     }
@@ -337,16 +463,16 @@ const saveWorkflow = async () => {
       if (result.success) {
         saveStatus.value = 'saved'
         lastSaved.value = new Date().toLocaleTimeString()
-        console.log('✅ 工作流保存成功！')
+        console.log('工作流保存成功！')
         showSuccess('工作流保存成功')
       } else {
         saveStatus.value = 'unsaved'
-        console.error('❌ 保存失败:', result.error)
+        console.error('  保存失败:', result.error)
         showError('保存失败', result.error)
       }
     } catch (error) {
       saveStatus.value = 'unsaved'
-      console.error('❌ 保存出错:', error)
+      console.error('  保存出错:', error)
       alert('保存失败，请检查后端服务是否启动')
     }
   }
@@ -376,9 +502,9 @@ const deployWorkflow = async () => {
     })
 
     deployResult.value = result
-    console.log(result.success ? '✅ 部署成功!' : '❌ 部署失败:', result)
+    console.log(result.success ? '  部署成功!' : '  部署失败:', result)
   } catch (error) {
-    console.error('❌ 部署出错:', error)
+    console.error('  部署出错:', error)
     deployResult.value = {
       success: false,
       error: error instanceof Error ? error.message : '部署失败'
@@ -398,7 +524,7 @@ const runWorkflow = async (inputData?: Record<string, any>, mode: 'normal' | 'de
 
       if (createResult.success && createResult.workflow) {
         workflowId = createResult.workflow.id
-        console.log('✅ 新工作流创建成功，ID:', workflowId)
+        console.log('  新工作流创建成功，ID:', workflowId)
 
         // 更新URL（不刷新页面）
         window.history.replaceState({}, '', `/workflow/${workflowId}`)
@@ -413,10 +539,10 @@ const runWorkflow = async (inputData?: Record<string, any>, mode: 'normal' | 'de
     if (saveResult.success) {
       saveStatus.value = 'saved'
       lastSaved.value = new Date().toLocaleTimeString()
-      console.log('✅ 执行前工作流保存成功')
+      console.log('  执行前工作流保存成功')
     }
   } catch (error) {
-    console.error('❌ 执行前保存失败:', error)
+    console.error('  执行前保存失败:', error)
     showError('保存失败', '执行前保存工作流失败，请检查后端服务')
     return
   }
@@ -544,7 +670,7 @@ const runWorkflow = async (inputData?: Record<string, any>, mode: 'normal' | 'de
 
     // 计算实际执行时间
     const executionTime = Date.now() - startTime
-    console.log(`✅ 工作流执行成功，耗时: ${executionTime}ms`)
+    console.log(`  工作流执行成功，耗时: ${executionTime}ms`)
 
     // 添加系统日志
     addExecutionLog({
@@ -571,7 +697,7 @@ const runWorkflow = async (inputData?: Record<string, any>, mode: 'normal' | 'de
     // 显示成功结果
     showSuccess('执行成功', `执行时间: ${executionTime}ms`)
   } catch (e) {
-    console.error('❌ 工作流执行失败:', e)
+    console.error('  工作流执行失败:', e)
 
     const errorMsg = e instanceof Error ? e.message : '未知错误'
 
@@ -1056,7 +1182,7 @@ const loadWorkflow = async (workflowId: string, fitView?: any) => {
         const result = await workflowService.fetchWorkflow(workflowId)
 
         if (result.success && result.workflow) {
-            console.log('✅ 工作流加载成功:', result.workflow)
+            console.log('  工作流加载成功:', result.workflow)
             console.log('📊 graphData:', JSON.stringify(result.workflow.graphData))
 
             const graphData = result.workflow.graphData
@@ -1108,15 +1234,15 @@ const loadWorkflow = async (workflowId: string, fitView?: any) => {
                         }, 100)
                     }
                 } else {
-                    console.warn('⚠️ 没有graphData，画布将保持空状态')
+                    console.warn('没有graphData，画布将保持空状态')
                 }
             }
         } else {
-            console.error('❌ 工作流加载失败:', result.error)
+            console.error('  工作流加载失败:', result.error)
             showError('加载失败', result.error || '无法加载工作流')
         }
     } catch (error) {
-        console.error('❌ 加载工作流出错:', error)
+        console.error('  加载工作流出错:', error)
         showError('加载失败', error instanceof Error ? error.message : '加载工作流时发生错误')
     } finally {
         isInitializing.value = false
@@ -1352,7 +1478,7 @@ const initializeExampleWorkflow = () => {
 
   isInitializing.value = false
 
-  console.log('✅ 示例工作流初始化完成，当前节点数:', nodes.value.length)
+  console.log('  示例工作流初始化完成，当前节点数:', nodes.value.length)
 }
 
 // 连接处理
@@ -1472,6 +1598,15 @@ onUnmounted(() => {
              <LayoutGrid :size="18" />
          </button>
 
+         <button @click="autoLayout"
+                 :disabled="isAutoLayouting || nodes.length === 0"
+                 class="flex items-center justify-center p-2 rounded-full transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                 :class="isAutoLayouting ? 'text-primary animate-pulse' : 'text-charcoal/60 hover:text-indigo-600 hover:bg-sand/20'"
+                 title="自动布局">
+             <Loader2 v-if="isAutoLayouting" :size="18" class="animate-spin" />
+             <Workflow v-else :size="18" />
+         </button>
+
          <div class="h-6 w-px bg-sand/30 dark:bg-white/10 mx-1"></div>
 
          <!-- Save Indicator -->
@@ -1510,6 +1645,16 @@ onUnmounted(() => {
             @click="showVersionHistory = true"
             class="flex items-center justify-center p-2 rounded-full text-charcoal/60 hover:text-indigo-600 hover:bg-sand/20 transition-colors" title="版本历史">
               <History :size="18" />
+          </button>
+
+          <button
+            @click="generateThumbnail"
+            :disabled="isGeneratingThumbnail"
+            class="flex items-center justify-center p-2 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            :class="isGeneratingThumbnail ? 'text-primary animate-pulse' : 'text-charcoal/60 hover:text-pink-600 hover:bg-sand/20'"
+            title="生成缩略图">
+              <Loader2 v-if="isGeneratingThumbnail" :size="18" class="animate-spin" />
+              <Camera v-else :size="18" />
           </button>
 
           <button
@@ -1646,6 +1791,7 @@ onUnmounted(() => {
                 </div>
 
                 <VueFlow
+                    ref="vueFlowRef"
                     v-model:nodes="nodes"
                     v-model:edges="edges"
                     @node-context-menu="(event) => showContextMenu(event.event as MouseEvent, event.node)"
@@ -1903,6 +2049,59 @@ onUnmounted(() => {
       @close="showVersionHistory = false"
       @restored="handleVersionRestored"
     />
+
+    <!-- Thumbnail Preview Dialog -->
+    <Teleport to="body">
+      <Transition name="fade">
+        <div v-if="showThumbnailPreview" class="fixed inset-0 z-50 flex items-center justify-center p-4"
+             @click.self="closeThumbnailPreview">
+          <div class="relative bg-white dark:bg-[#1e1711] rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
+            <!-- Header -->
+            <div class="flex items-center justify-between p-6 border-b border-sand/30 dark:border-white/10">
+              <div class="flex items-center gap-3">
+                <div class="size-10 rounded-full bg-pink-100 dark:bg-pink-900/30 flex items-center justify-center">
+                  <Camera :size="20" class="text-pink-600 dark:text-pink-400" />
+                </div>
+                <div>
+                  <h3 class="text-lg font-bold text-charcoal dark:text-white">工作流缩略图</h3>
+                  <p class="text-xs text-khaki">预览和下载工作流可视化图</p>
+                </div>
+              </div>
+              <button @click="closeThumbnailPreview"
+                      class="flex items-center justify-center p-2 rounded-full hover:bg-sand/20 dark:hover:bg-white/10 transition-colors">
+                <X :size="20" class="text-charcoal/60 dark:text-sand/60" />
+              </button>
+            </div>
+
+            <!-- Image Preview -->
+            <div class="p-6 overflow-y-auto max-h-[calc(90vh-180px)] bg-sand/30 dark:bg-white/5">
+              <div class="flex items-center justify-center">
+                <img v-if="thumbnailData"
+                     :src="thumbnailData"
+                     alt="Workflow Thumbnail"
+                     class="max-w-full h-auto rounded-lg shadow-lg border border-sand/20 dark:border-white/10" />
+                <div v-else class="text-center text-khaki">
+                  暂无缩略图
+                </div>
+              </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="flex items-center justify-end gap-3 p-6 border-t border-sand/30 dark:border-white/10 bg-white/50 dark:bg-[#1e1711]/50">
+              <button @click="closeThumbnailPreview"
+                      class="px-4 py-2 rounded-lg text-sm font-medium text-charcoal/60 dark:text-sand/60 hover:text-charcoal dark:hover:text-white hover:bg-sand/20 dark:hover:bg-white/10 transition-colors">
+                关闭
+              </button>
+              <button @click="downloadThumbnail"
+                      class="px-4 py-2 rounded-lg text-sm font-medium bg-pink-600 hover:bg-pink-700 text-white shadow-md hover:shadow-lg transition-all flex items-center gap-2">
+                <Download :size="16" />
+                下载图片
+              </button>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
   </div>
 </template>
 

@@ -264,6 +264,9 @@ export class WorkflowController {
     @BrowserId() browserId: string,
   ) {
     const result = await this.workflowService.deploy(id, body, browserId);
-    return ResponseUtil.success(result, 'Workflow deployed successfully');
+    const message = result.isUpdate
+      ? '工作流重新部署成功（已覆盖之前的部署）'
+      : '工作流首次部署成功';
+    return ResponseUtil.success(result, message);
   }
 }

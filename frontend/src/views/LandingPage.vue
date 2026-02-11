@@ -154,35 +154,35 @@
       <section class="py-24 px-6 lg:px-20 bg-white dark:bg-[#1e1711]">
         <div class="mx-auto max-w-[1400px]">
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-y-16 gap-x-8">
-            <div class="flex flex-col gap-6 group cursor-pointer animate-scale-in delay-100 hover-enhanced">
+            <div class="flex flex-col group cursor-pointer animate-scale-in delay-100 hover-enhanced rounded-3xl overflow-hidden hover:bg-white dark:hover:bg-white/5 transition-colors">
               <!-- ... images kept same ... -->
-               <div class="overflow-hidden rounded-xl aspect-[4/5] relative">
+               <div class="overflow-hidden aspect-[4/5] relative">
                 <div class="w-full h-full bg-center bg-cover transition-transform duration-700 group-hover:scale-105" data-alt="Abstract visualization of data logic streams in soft cream colors" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCHvcaMNXE_RQ0VTo91N8LoDvPHVVn53yITCzCylVgceNw62erRGtcViEb6cg5aPKQsGlE7EyhzyiZnTwtvSkgBfquZoChmNOVts6ar2rXzjrj2IqvwgrZ_Scw2XGNAshg-OCIjCqA4wt5dxD1ebUDfWSgHae8eSq2n7deOksVPKR_OkjV9jQVcQkNGxI4yZUe9biItBIXbL_PCGh947mN1-FX5jUsbmmRsj8ZvK6uIlTpyAn3rzYLWHG9nqIcLL_W7vjS4Xbhdan8');"></div>
                 <div class="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-500"></div>
               </div>
-              <div>
+              <div class="p-6">
                 <span class="text-xs font-bold tracking-[0.15em] uppercase text-primary mb-3 block">工作流</span>
                 <h3 class="text-2xl font-serif font-medium leading-snug tracking-tight text-charcoal dark:text-white mb-3 group-hover:text-primary transition-colors">清晰可见</h3>
                 <p class="text-khaki dark:text-sand/70 leading-loose tracking-wide">数据流动、逻辑处理，一目了然。无需深究代码，可视化呈现一切。</p>
               </div>
             </div>
-            <div class="flex flex-col gap-6 group cursor-pointer lg:translate-y-16 animate-scale-in delay-200 hover-enhanced">
-               <div class="overflow-hidden rounded-xl aspect-[4/5] relative">
+            <div class="flex flex-col group cursor-pointer lg:translate-y-16 animate-scale-in delay-200 hover-enhanced rounded-3xl overflow-hidden hover:bg-white dark:hover:bg-white/5 transition-colors">
+               <div class="overflow-hidden aspect-[4/5] relative">
                 <div class="w-full h-full bg-center bg-cover transition-transform duration-700 group-hover:scale-105" data-alt="Minimalist desk setup with tablet showing workflow diagrams" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBEtnTBcV4dZiNvNOyfsb2RYvLkEA9_KmhL4VyrrjVMjQqjAOmER7GdWPLXMxLSvDUenlHS3OyZtZ5PWtdEYFWHSZ6Hx8nDW2MiFKK-MKUeRiqR_c_-iBEdzI-1va0kxRictMG84EcYpY3OirY-4BO4gQ8aJ9pKCXDOp3LJxbp_P5RJFDJvtCkBVbAOBPE5sROnYknA9EwYgD626avbVGYalzSrPD4zaGMp5pP9dutDnTdFm6eWHic2ZxYCCVVIx9TVjB60Dks1Mx8');"></div>
                 <div class="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-500"></div>
               </div>
-              <div>
+              <div class="p-6">
                 <span class="text-xs font-bold tracking-[0.15em] uppercase text-primary mb-3 block">连接性</span>
                 <h3 class="text-2xl font-serif font-medium leading-snug tracking-tight text-charcoal dark:text-white mb-3 group-hover:text-primary transition-colors">融会贯通</h3>
                 <p class="text-khaki dark:text-sand/70 leading-loose tracking-wide">各类数据源、API，拖拽即连。无需编码，集成自如。</p>
               </div>
             </div>
-            <div class="flex flex-col gap-6 group cursor-pointer animate-scale-in delay-300 hover-enhanced">
-               <div class="overflow-hidden rounded-xl aspect-[4/5] relative">
+            <div class="flex flex-col group cursor-pointer animate-scale-in delay-300 hover-enhanced rounded-3xl overflow-hidden hover:bg-white dark:hover:bg-white/5 transition-colors">
+               <div class="overflow-hidden aspect-[4/5] relative">
                 <div class="w-full h-full bg-center bg-cover transition-transform duration-700 group-hover:scale-105" data-alt="Artistic rendering of digital output generation" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDBr4c9zNlWwNVVBefmsEyooTEQorzqVc2VroBG8yddXffVqS21LDdIftlpkaWpGO1zFVBdXJsu2Tv1IdWKLAB-TLgy0aLfgGj4OD2vZuTWa0WWAlp4MSZ5mZOL9ZubLh85Hzhl79HyoU-0aJIJ1-Y_CvULHJgEnVLbTrJs-tIYbop0YG517qtHfGMlNGzA0nwY7ihlgu4bwW1s3DI-lLkHg0UqrvCZtQeM2gD-1_ORUx8cMcHUj9mac3rO4ww-ued-BWNqmbtr7yU');"></div>
                 <div class="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-500"></div>
               </div>
-              <div>
+              <div class="p-6">
                 <span class="text-xs font-bold tracking-[0.15em] uppercase text-primary mb-3 block">结果</span>
                 <h3 class="text-2xl font-serif font-medium leading-snug tracking-tight text-charcoal dark:text-white mb-3 group-hover:text-primary transition-colors">精美呈现</h3>
                 <p class="text-khaki dark:text-sand/70 leading-loose tracking-wide">生成的报表与看板，专业而优雅。直接分享，无需修饰。</p>

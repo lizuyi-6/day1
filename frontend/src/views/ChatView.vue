@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { ref, nextTick, onMounted } from 'vue';
 import { API_BASE_URL } from '@/config/api';
-import { post, get } from '@/utils/api';
+import { post, get, del } from '@/utils/api';
 import { workflowService } from '@/services/workflowService';
-import { Send, Bot, User, Cpu, Sparkles, MessageSquare, LayoutGrid, Workflow, Database } from 'lucide-vue-next';
+import { Send, Bot, User, Cpu, Sparkles, MessageSquare, LayoutGrid, Workflow, Database, Trash2, CheckSquare, Square, X } from 'lucide-vue-next';
 import Logo from '@/components/layout/Logo.vue';
 import { RouterLink, useRoute } from 'vue-router';
 import { useScrollAnimations } from '@/composables/useScrollAnimations';
@@ -43,6 +43,11 @@ const agents = ref<Agent[]>([])
 const activeAgentId = ref<string | null>(null)
 const activeAgent = ref<any>(null)
 
+// 批量删除相关状态
+const isManageMode = ref(false)
+const selectedAgentIds = ref<Set<string>>(new Set())
+const isDeleting = ref(false)
+
 const navLinks = [
   { name: '仪表盘', path: '/dashboard', icon: LayoutGrid },
   { name: '工作流', path: '/workflows', icon: Workflow },
@@ -51,7 +56,7 @@ const navLinks = [
 ]
 
 onMounted(async () => {
-  console.log('✅ ChatView mounted, loading agents...');
+  console.log('ChatView mounted, loading agents...');
   document.body.classList.add('page-loaded')
   await loadAgents()
 })
@@ -67,7 +72,7 @@ const loadAgents = async () => {
         console.log('📥 Agents result:', result);
         
         if (result.success && result.workflows) {
-            console.log('✅ Found deployed workflows:', result.workflows.length);
+            console.log('Found deployed workflows:', result.workflows.length);
             agents.value = result.workflows.map((wf: any) => ({
                 id: wf.id,
                 name: wf.name,
@@ -102,6 +107,68 @@ const loadAgents = async () => {
     } finally {
         loading.value = false;
     }
+}
+
+// 批量删除方法
+const toggleManageMode = () => {
+  isManageMode.value = !isManageMode.value
+  selectedAgentIds.value.clear()
+}
+
+const toggleAgentSelection = (agentId: string) => {
+  if (selectedAgentIds.value.has(agentId)) {
+    selectedAgentIds.value.delete(agentId)
+  } else {
+    selectedAgentIds.value.add(agentId)
+  }
+}
+
+const deleteSelectedAgents = async () => {
+  if (selectedAgentIds.value.size === 0) {
+    messages.value.push({
+      role: 'system',
+      content: '请先选择要删除的工作流。',
+      timestamp: Date.now()
+    })
+    return
+  }
+
+  if (!confirm(`确定要删除选中的 ${selectedAgentIds.value.size} 个工作流吗？此操作不可撤销。`)) {
+    return
+  }
+
+  isDeleting.value = true
+  let successCount = 0
+  let failCount = 0
+
+  for (const agentId of selectedAgentIds.value) {
+    try {
+      const result = await workflowService.deleteWorkflow(agentId)
+      if (result.success) {
+        successCount++
+      } else {
+        failCount++
+        console.error('Failed to delete workflow:', agentId, result.error)
+      }
+    } catch (error: any) {
+      failCount++
+      console.error('Error deleting workflow:', agentId, error)
+    }
+  }
+
+  isDeleting.value = false
+  selectedAgentIds.value.clear()
+  isManageMode.value = false
+
+  // 重新加载列表
+  await loadAgents()
+
+  // 显示结果
+  messages.value.push({
+    role: 'system',
+    content: `删除完成：成功 ${successCount} 个，失败 ${failCount} 个。`,
+    timestamp: Date.now()
+  })
 }
 
 const selectAgent = async (id: string) => {
@@ -210,10 +277,35 @@ const sendMessage = async () => {
     const result = await workflowService.executeWorkflow(activeAgentId.value, payload);
 
     if (result) {
-         // 假设输出在 result 字段 (根据示例工作流定义)
-         const outputText = result.result || JSON.stringify(result);
-         loading.value = false;
-         await typeMessage(outputText);
+      // Extract text output from workflow result
+      // result is nodeOutputs: { 'node-id': { output_1: 'text', response: 'text', ... }, ... }
+      let outputText = '';
+
+      // Try to find the last executed node's output
+      const nodeIds = Object.keys(result);
+      if (nodeIds.length > 0) {
+        // Get the last node's output
+        const lastNodeId = nodeIds[nodeIds.length - 1];
+        const lastNodeOutput = result[lastNodeId];
+
+        // Extract text from common output fields
+        if (lastNodeOutput) {
+          outputText = lastNodeOutput.result ||          // Standard result field
+                       lastNodeOutput.output_1 ||         // LLM node output_1
+                       lastNodeOutput.response ||         // LLM node response
+                       lastNodeOutput.text ||            // Generic text field
+                       lastNodeOutput.output ||          // Generic output field
+                       JSON.stringify(lastNodeOutput);   // Fallback
+        }
+      }
+
+      // If still no text, stringify the entire result
+      if (!outputText) {
+        outputText = JSON.stringify(result);
+      }
+
+      loading.value = false;
+      await typeMessage(outputText);
     }
 
   } catch (e: any) {
@@ -260,35 +352,86 @@ const sendMessage = async () => {
       <!-- Sidebar -->
       <aside class="w-72 bg-white/50 dark:bg-[#2a241e]/50 backdrop-blur-sm border-r border-sand/30 dark:border-white/10 flex flex-col hidden md:flex z-10">
         <div class="p-5 border-b border-sand/30 dark:border-white/10">
-          <h2 class="text-xs font-bold text-khaki uppercase tracking-[0.2em]">活跃助手 (工作流)</h2>
+          <div class="flex items-center justify-between">
+            <h2 class="text-xs font-bold text-khaki uppercase tracking-[0.2em]">活跃助手 (工作流)</h2>
+            <button
+              @click="toggleManageMode"
+              class="text-[10px] px-2 py-1 rounded-md transition-colors"
+              :class="isManageMode ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400' : 'bg-sand/20 dark:bg-white/10 text-khaki hover:text-primary'"
+            >
+              {{ isManageMode ? '退出管理' : '管理' }}
+            </button>
+          </div>
         </div>
+
+        <!-- 批量操作工具栏 -->
+        <div v-if="isManageMode" class="px-3 py-2 bg-red-50/50 dark:bg-red-900/10 border-b border-red-200/50 dark:border-red-800/30">
+          <div class="flex items-center justify-between">
+            <span class="text-[10px] text-red-600 dark:text-red-400">
+              已选 {{ selectedAgentIds.size }} 个
+            </span>
+            <div class="flex items-center gap-1">
+              <button
+                v-if="selectedAgentIds.size > 0"
+                @click="deleteSelectedAgents"
+                :disabled="isDeleting"
+                class="flex items-center gap-1 px-2 py-1 bg-red-500 hover:bg-red-600 disabled:opacity-50 text-white text-[10px] rounded-md transition-colors"
+              >
+                <Trash2 :size="12" />
+                {{ isDeleting ? '删除中...' : '删除' }}
+              </button>
+              <button
+                v-if="selectedAgentIds.size > 0"
+                @click="selectedAgentIds.clear()"
+                class="px-2 py-1 bg-sand/20 dark:bg-white/10 hover:bg-sand/30 dark:hover:bg-white/20 text-[10px] rounded-md transition-colors"
+              >
+                清空
+              </button>
+            </div>
+          </div>
+        </div>
+
         <div class="p-3 space-y-2 overflow-y-auto">
           <!-- Dynamic Agent List -->
-          <div 
-            v-for="agent in agents" 
+          <div
+            v-for="agent in agents"
             :key="agent.id"
-            @click="selectAgent(agent.id)"
+            @click="isManageMode ? toggleAgentSelection(agent.id) : selectAgent(agent.id)"
             class="flex items-center gap-3 p-3 rounded-xl border shadow-sm cursor-pointer group transition-all hover:shadow-md"
-            :class="activeAgentId === agent.id 
-                ? 'bg-white dark:bg-white/10 border-sand/30 dark:border-white/10' 
+            :class="activeAgentId === agent.id && !isManageMode
+                ? 'bg-white dark:bg-white/10 border-sand/30 dark:border-white/10'
                 : 'hover:bg-sand/20 dark:hover:bg-white/5 border-transparent opacity-70 hover:opacity-100'"
           >
+            <!-- 多选框 (管理模式) -->
+            <div v-if="isManageMode" class="shrink-0">
+              <div
+                class="w-5 h-5 rounded border-2 flex items-center justify-center transition-colors"
+                :class="selectedAgentIds.has(agent.id)
+                  ? 'bg-red-500 border-red-500 text-white'
+                  : 'border-sand/40 dark:border-white/20 hover:border-red-400'"
+                @click.stop="toggleAgentSelection(agent.id)"
+              >
+                <CheckSquare v-if="selectedAgentIds.has(agent.id)" :size="14" />
+                <Square v-else :size="14" class="text-sand/40" />
+              </div>
+            </div>
+
             <div class="relative">
               <div class="size-10 rounded-full bg-primary/10 flex items-center justify-center text-primary group-hover:scale-105 transition-transform">
                   <Bot :size="20" />
               </div>
-              <span v-if="activeAgentId === agent.id" class="absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full bg-primary border-2 border-white dark:border-[#2a241e]"></span>
+              <span v-if="activeAgentId === agent.id && !isManageMode" class="absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full bg-primary border-2 border-white dark:border-[#2a241e]"></span>
             </div>
             <div class="flex-1 min-w-0">
               <div class="text-sm font-bold text-charcoal dark:text-white truncate">{{ agent.name }}</div>
               <div class="text-xs text-khaki truncate">{{ agent.description }}</div>
             </div>
           </div>
-          
+
           <div v-if="agents.length === 0" class="p-4 text-center flex flex-col items-center gap-2">
               <span class="text-xs text-khaki">暂无已部署的工作流</span>
-              <button 
-                @click="loadAgents" 
+              <button
+                @click="loadAgents"
                 class="text-[10px] text-primary hover:text-primary/80 underline cursor-pointer"
               >
                 刷新列表

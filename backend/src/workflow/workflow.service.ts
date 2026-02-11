@@ -422,28 +422,34 @@ export class WorkflowService implements OnModuleInit {
     id: string,
     config: Record<string, any>,
     browserId?: string,
-  ): Promise<{ success: boolean; url: string }> {
+  ): Promise<{ success: boolean; url: string; isUpdate: boolean }> {
     const workflow = await this.findOne(id, browserId);
     if (!workflow) {
       throw new WorkflowNotFoundException(id);
     }
 
+    // 检查是否已经部署过
+    const isUpdate = workflow.status === 'published';
+
     // 生成生产环境 URL
     const baseUrl = process.env.API_BASE_URL || 'http://localhost:3000';
     const productionUrl = `${baseUrl}/api/v1/run/${id}`;
 
-    // 更新工作流状态为已部署
-    await this.workflowRepository.update(id, {
-      status: 'published',
+    // 更新部署时间戳（即使是重新部署也要更新时间）
+    const deploymentData = {
+      status: 'published' as const,
       deploymentUrl: productionUrl,
       deployedAt: new Date(),
-    });
+    };
 
-    console.log(`✅ 工作流 ${id} 部署成功，URL: ${productionUrl}`);
+    await this.workflowRepository.update(id, deploymentData);
+
+    console.log(`${isUpdate ? '♻️ 重新部署' : '✅ 首次部署'} 工作流 ${id} (${workflow.name}) - URL: ${productionUrl}`);
 
     return {
       success: true,
       url: productionUrl,
+      isUpdate,
     };
   }
 }
