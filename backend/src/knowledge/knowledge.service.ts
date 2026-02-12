@@ -63,14 +63,12 @@ export class KnowledgeService {
     });
   }
 
-  async processDocument(file: Express.Multer.File) {
+  async processDocument(file: Express.Multer.File, groupId?: string) {
     let text: string;
 
-    // 解码文件名（简化版：只尝试 Latin-1）
     const decodedFileName = decodeFileName(file.originalname);
     this.logger.log(`[FileName] Processing file: ${file.originalname} -> ${decodedFileName}`);
 
-    // 根据文件类型提取文本
     if (file.mimetype === 'application/pdf') {
       try {
         const data = await pdf(file.buffer);
@@ -81,26 +79,21 @@ export class KnowledgeService {
         throw new Error(`Failed to parse PDF file: ${error.message}`);
       }
     } else {
-      // 默认文本处理 (TXT, MD)
       text = file.buffer.toString('utf-8');
     }
 
-    // 验证文本不为空
     if (!text || text.trim().length < 10) {
       throw new Error('Document content is too short or empty');
     }
 
-    // 1. Chunking
     const splitter = new RecursiveCharacterTextSplitter({
       chunkSize: 500,
       chunkOverlap: 100,
     });
     const chunks = await splitter.createDocuments([text]);
 
-    // 2. Embedding & Save
     const entities = [];
     for (const chunk of chunks) {
-      // Mock embedding if no key provided/valid to prevent runtime crash in demo without credits
       let vector: number[];
       try {
         vector = await this.embeddings.embedQuery(chunk.pageContent);
@@ -115,17 +108,17 @@ export class KnowledgeService {
         fileName: decodedFileName,
         content: chunk.pageContent,
         embedding: vector,
+        groupId: groupId || undefined,
       });
       entities.push(knowledge);
     }
 
-    this.logger.log(`[KnowledgeService] Saved ${chunks.length} chunks for file: ${decodedFileName}`);
+    this.logger.log(`[KnowledgeService] Saved ${chunks.length} chunks for file: ${decodedFileName}${groupId ? ` in group: ${groupId}` : ''}`);
 
     return await this.knowledgeRepository.save(entities);
   }
 
-  async search(query: string, topK = 3) {
-    // 输入验证：防止SQL注入和DoS攻击
+  async search(query: string, topK = 3, groupId?: string) {
     if (!query || typeof query !== 'string') {
       throw new Error('Query must be a non-empty string');
     }
@@ -136,64 +129,76 @@ export class KnowledgeService {
       );
     }
 
-    // 转义特殊字符以防止SQL注入
     const sanitizedQuery = query
-      .replace(/[%_\\]/g, '\\$&') // 转义LIKE通配符和反斜杠
+      .replace(/[%_\\]/g, '\\$&')
       .trim();
 
     if (!sanitizedQuery) {
       return [];
     }
 
-    // 限制topK以防止性能问题
     const safeTopK = Math.min(Math.max(1, topK), 100);
 
     try {
-      // 生成查询向量
       const queryVector = await this.embeddings.embedQuery(sanitizedQuery);
 
-      // 使用 pgvector 进行余弦相似度搜索
-      const results = await this.knowledgeRepository
+      const qb = this.knowledgeRepository
         .createQueryBuilder('knowledge')
         .orderBy('knowledge.embedding <=> :vector', 'ASC')
         .setParameters({ vector: JSON.stringify(queryVector) })
-        .limit(safeTopK)
-        .getMany();
+        .limit(safeTopK);
 
-      // 如果向量检索没有结果（例如 embedding 为空），降级到关键词搜索
+      if (groupId) {
+        qb.andWhere('knowledge.groupId = :groupId', { groupId });
+      }
+
+      const results = await qb.getMany();
+
       if (results.length === 0) {
-        return await this.knowledgeRepository
+        const fallbackQb = this.knowledgeRepository
           .createQueryBuilder('knowledge')
           .where('knowledge.content LIKE :query', { query: `%${sanitizedQuery}%` })
           .orWhere('knowledge.fileName LIKE :query2', {
             query2: `%${sanitizedQuery}%`,
           })
-          .limit(safeTopK)
-          .getMany();
+          .limit(safeTopK);
+
+        if (groupId) {
+          fallbackQb.andWhere('knowledge.groupId = :groupId', { groupId });
+        }
+
+        return await fallbackQb.getMany();
       }
 
       return results;
     } catch (error) {
       console.error('Vector search failed, falling back to keyword search:', error);
 
-      // 降级方案：使用 LIKE 进行关键词搜索
-      return await this.knowledgeRepository
+      const fallbackQb = this.knowledgeRepository
         .createQueryBuilder('knowledge')
         .where('knowledge.content LIKE :query', { query: `%${sanitizedQuery}%` })
         .orWhere('knowledge.fileName LIKE :query2', {
           query2: `%${sanitizedQuery}%`,
         })
-        .limit(safeTopK)
-        .getMany();
+        .limit(safeTopK);
+
+      if (groupId) {
+        fallbackQb.andWhere('knowledge.groupId = :groupId', { groupId });
+      }
+
+      return await fallbackQb.getMany();
     }
   }
 
-  async getDocuments(page: number = 1, limit: number = 20, fileName?: string) {
+  async getDocuments(page: number = 1, limit: number = 20, fileName?: string, groupId?: string) {
     const skip = (page - 1) * limit;
 
     const where: any = {};
     if (fileName) {
       where.fileName = Like(`%${fileName}%`);
+    }
+    if (groupId) {
+      where.groupId = groupId;
     }
 
     const [documents, total] = await this.knowledgeRepository.findAndCount({
@@ -203,7 +208,6 @@ export class KnowledgeService {
       take: limit,
     });
 
-    // 按文件名分组统计
     const grouped = documents.reduce((acc, doc) => {
       if (!acc[doc.fileName]) {
         acc[doc.fileName] = [];
@@ -217,6 +221,7 @@ export class KnowledgeService {
       chunkCount: chunks.length,
       firstChunkId: chunks[0].id,
       uploadedAt: chunks[0].createdAt,
+      groupId: chunks[0].groupId,
     }));
 
     return {
@@ -228,17 +233,18 @@ export class KnowledgeService {
     };
   }
 
-  async deleteDocuments(fileName: string) {
-    // 查找该文件的所有 chunks
-    const chunks = await this.knowledgeRepository.find({
-      where: { fileName },
-    });
+  async deleteDocuments(fileName: string, groupId?: string) {
+    const where: any = { fileName };
+    if (groupId) {
+      where.groupId = groupId;
+    }
+
+    const chunks = await this.knowledgeRepository.find({ where });
 
     if (chunks.length === 0) {
       throw new NotFoundException(`Document "${fileName}" not found`);
     }
 
-    // 删除所有 chunks
     const result = await this.knowledgeRepository.remove(chunks);
 
     this.logger.log(`Deleted ${result.length} chunks for file "${fileName}"`);

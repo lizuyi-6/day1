@@ -293,7 +293,7 @@ const onDrop = (event: DragEvent) => {
   }
 
   // 获取 VueFlow 画布的位置信息，将屏幕坐标转换为画布坐标
-  const position = project({
+  const position = vueFlowProject({
     x: event.clientX,
     y: event.clientY
   })

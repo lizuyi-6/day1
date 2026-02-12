@@ -1,4 +1,5 @@
 import api from '@/api'
+import { ref } from 'vue'
 
 export interface WorkflowExecutionResult {
   [nodeId: string]: any
@@ -228,6 +229,36 @@ export function addTerminalLog(log: any) {
   console.log('[workflowService] Added terminal log:', log)
 }
 
+// Debug session state
+interface DebugState {
+  isActive: boolean
+  currentNode: string | null
+  logs: any[]
+}
+
+const debugState = ref<DebugState>({
+  isActive: false,
+  currentNode: null,
+  logs: []
+})
+
+export function startDebugSession() {
+  debugState.value.isActive = true
+  debugState.value.logs = []
+  debugState.value.currentNode = null
+  console.log('[workflowService] Debug session started')
+}
+
+export function stopDebugSession() {
+  debugState.value.isActive = false
+  debugState.value.currentNode = null
+  console.log('[workflowService] Debug session stopped')
+}
+
+export function addDebugLog(log: any) {
+  debugState.value.logs.push(log)
+}
+
 // Local workflow state management
 let currentNodes: any[] = []
 let currentEdges: any[] = []
@@ -257,7 +288,11 @@ export const workflowService = {
   clearTerminalLogs,
   addTerminalLog,
   loadWorkflow,
-  getCurrentWorkflow
+  getCurrentWorkflow,
+  startDebugSession,
+  stopDebugSession,
+  addDebugLog,
+  debugState
 }
 
 // Also export as default for backward compatibility
