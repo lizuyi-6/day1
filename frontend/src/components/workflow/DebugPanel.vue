@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
-import { Bug, Play, Square, Trash2, ChevronDown, ChevronRight, Info, AlertTriangle, CheckCircle, XCircle } from 'lucide-vue-next'
+import { ref, computed } from 'vue'
+import { Bug, X, Play, Square, ChevronDown, ChevronUp } from 'lucide-vue-next'
 import { workflowService, type DebugLog } from '@/services/workflowService'
 
 const props = defineProps<{
@@ -15,177 +15,98 @@ const emit = defineEmits<{
 const logs = computed(() => workflowService.debugState.value?.logs || [])
 const currentNode = computed(() => workflowService.debugState.value?.currentNode)
 const isExpanded = ref(true)
-const autoScroll = ref(true)
-
-const logContainer = ref<HTMLElement | null>(null)
-
-// 自动滚动到底部
-watch(() => logs.value.length, () => {
-  if (autoScroll.value && logContainer.value) {
-    setTimeout(() => {
-      logContainer.value?.scrollTo({
-        top: logContainer.value.scrollHeight,
-        behavior: 'smooth'
-      })
-    }, 100)
-  }
-})
-
-const getLogIcon = (level: DebugLog['level']) => {
-  switch (level) {
-    case 'info':
-      return Info
-    case 'warn':
-      return AlertTriangle
-    case 'error':
-      return XCircle
-    case 'success':
-      return CheckCircle
-  }
-}
-
-const getLogColor = (level: DebugLog['level']) => {
-  switch (level) {
-    case 'info':
-      return 'text-blue-600 bg-blue-50'
-    case 'warn':
-      return 'text-amber-600 bg-amber-50'
-    case 'error':
-      return 'text-red-600 bg-red-50'
-    case 'success':
-      return 'text-emerald-600 bg-emerald-50'
-  }
-}
-
-const formatTime = (timestamp: number) => {
-  return new Date(timestamp).toLocaleTimeString('zh-CN', { hour12: false })
-}
-
-const clearLogs = () => {
-  workflowService.clearDebugLogs()
-}
 
 const stopDebug = () => {
   workflowService.stopDebugSession()
   emit('toggle')
 }
+
+const getLogColor = (level: DebugLog['level']) => {
+  switch (level) {
+    case 'info': return 'text-blue-500'
+    case 'warn': return 'text-amber-500'
+    case 'error': return 'text-red-500'
+    case 'success': return 'text-emerald-500'
+  }
+}
+
+const formatTime = (timestamp: number) => {
+  return new Date(timestamp).toLocaleTimeString('zh-CN', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })
+}
 </script>
 
 <template>
-  <div v-if="props.debugMode" class="fixed bottom-4 left-4 right-4 z-50">
-    <div class="bg-white rounded-lg shadow-2xl border border-light overflow-hidden slide-up-enter-active">
-      <!-- Header -->
-      <div class="px-4 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 flex items-center justify-between">
-        <div class="flex items-center gap-3">
-          <div class="h-8 w-8 rounded-lg bg-white/20 flex items-center justify-center">
-            <Bug :size="18" class="text-white" />
+  <Transition name="debug-panel">
+    <div v-if="props.debugMode" class="fixed bottom-[340px] right-4 w-80 z-50">
+      <div class="bg-white dark:bg-[#1e1711] rounded-xl shadow-2xl border border-sand/30 overflow-hidden">
+        <div class="flex items-center justify-between px-3 py-2 bg-primary/10 border-b border-sand/20">
+          <div class="flex items-center gap-2">
+            <div class="w-6 h-6 rounded-lg bg-primary/20 flex items-center justify-center">
+              <Bug :size="14" class="text-primary" />
+            </div>
+            <div>
+              <h3 class="text-xs font-bold text-charcoal dark:text-sand">调试模式</h3>
+              <p v-if="currentNode" class="text-[10px] text-khaki">节点: {{ currentNode }}</p>
+            </div>
           </div>
-          <div>
-            <h3 class="text-sm font-bold text-white">调试控制台</h3>
-            <p class="text-[10px] text-white/70">实时查看工作流执行状态</p>
-          </div>
-        </div>
-        <div class="flex items-center gap-2">
-          <button
-            @click="isExpanded = !isExpanded"
-            class="p-1.5 text-white/70 hover:text-white hover:bg-white/10 rounded transition-colors"
-          >
-            <ChevronDown v-if="isExpanded" :size="18" />
-            <ChevronRight v-else :size="18" />
-          </button>
-        </div>
-      </div>
-
-      <div v-if="isExpanded" class="max-h-96 flex flex-col">
-        <!-- Toolbar -->
-        <div class="px-4 py-2 bg-slate-50 border-b border-light flex items-center gap-2">
           <div class="flex items-center gap-1">
-            <div class="h-2 w-2 rounded-full" :class="currentNode ? 'bg-green-500 animate-pulse' : 'bg-slate-300'"></div>
-            <span class="text-[10px] text-slate-600">
-              {{ currentNode ? `执行中: 节点 ${currentNode}` : '等待执行...' }}
-            </span>
+            <button @click="isExpanded = !isExpanded" class="p-1 text-khaki hover:text-primary transition-colors">
+              <ChevronDown v-if="isExpanded" :size="14" />
+              <ChevronUp v-else :size="14" />
+            </button>
+            <button @click="stopDebug" class="p-1 text-khaki hover:text-red-500 transition-colors">
+              <X :size="14" />
+            </button>
           </div>
-          <div class="flex-1"></div>
-          <label class="flex items-center gap-1.5 text-[10px] text-slate-600 cursor-pointer">
-            <input
-              v-model="autoScroll"
-              type="checkbox"
-              class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
-            />
-            自动滚动
-          </label>
-          <button
-            @click="clearLogs"
-            class="px-2 py-1 text-[10px] text-slate-600 hover:bg-slate-200 rounded transition-colors flex items-center gap-1"
-          >
-            <Trash2 :size="12" />
-            清除
-          </button>
-          <button
-            @click="stopDebug"
-            class="px-2 py-1 text-[10px] bg-red-100 text-red-600 hover:bg-red-200 rounded transition-colors flex items-center gap-1"
-          >
-            <Square :size="12" />
+        </div>
+        
+        <div v-if="isExpanded" class="max-h-48 overflow-y-auto">
+          <div v-if="logs.length === 0" class="flex flex-col items-center justify-center py-6 text-khaki/50">
+            <Bug :size="24" class="mb-2 opacity-30" />
+            <p class="text-[10px]">点击节点开始调试</p>
+          </div>
+          
+          <div v-else class="divide-y divide-sand/10">
+            <div v-for="(log, idx) in logs.slice(-10)" :key="idx" 
+                 class="flex items-start gap-2 px-3 py-2 hover:bg-sand/10 transition-colors">
+              <div :class="getLogColor(log.level)" class="mt-0.5">
+                <div class="w-1.5 h-1.5 rounded-full bg-current"></div>
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-1 mb-0.5">
+                  <span class="text-[9px] text-khaki/60 font-mono">{{ formatTime(log.timestamp) }}</span>
+                  <span v-if="log.nodeId" class="text-[9px] text-primary font-mono">{{ log.nodeId }}</span>
+                </div>
+                <p class="text-[10px] text-charcoal dark:text-sand leading-relaxed">{{ log.message }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="px-3 py-2 bg-sand/10 border-t border-sand/20 flex items-center justify-between">
+          <div class="flex items-center gap-1.5">
+            <div class="w-1.5 h-1.5 rounded-full animate-pulse" :class="currentNode ? 'bg-emerald-500' : 'bg-khaki/30'"></div>
+            <span class="text-[10px] text-khaki">{{ currentNode ? '调试中' : '就绪' }}</span>
+          </div>
+          <button @click="stopDebug" class="flex items-center gap-1 px-2 py-1 text-[10px] font-bold text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors">
+            <Square :size="10" />
             停止
           </button>
         </div>
-
-        <!-- Logs -->
-        <div
-          ref="logContainer"
-          class="flex-1 overflow-y-auto p-4 space-y-2 bg-slate-900 custom-scrollbar"
-        >
-          <div
-            v-for="(log, idx) in logs"
-            :key="idx"
-            class="flex items-start gap-3 p-3 rounded-lg bg-slate-800/50 hover:bg-slate-800 transition-all group"
-          >
-            <!-- Icon -->
-            <div
-              class="h-6 w-6 rounded flex items-center justify-center shrink-0 mt-0.5"
-              :class="getLogColor(log.level)"
-            >
-              <component :is="getLogIcon(log.level)" :size="14" />
-            </div>
-
-            <!-- Content -->
-            <div class="flex-1 min-w-0">
-              <div class="flex items-center gap-2 mb-1">
-                <span class="text-[9px] text-slate-400 font-mono">{{ formatTime(log.timestamp) }}</span>
-                <span class="text-[10px] font-mono text-indigo-400">{{ log.nodeId }}</span>
-              </div>
-              <p class="text-[11px] text-slate-300 leading-relaxed">{{ log.message }}</p>
-              <pre v-if="log.data" class="text-[9px] text-slate-400 font-mono mt-2 p-2 bg-slate-900 rounded overflow-x-auto">{{ JSON.stringify(log.data, null, 2) }}</pre>
-            </div>
-          </div>
-
-          <!-- Empty State -->
-          <div v-if="logs.length === 0" class="flex flex-col items-center justify-center py-12 text-slate-500">
-            <Bug :size="48" class="mb-3 opacity-20" />
-            <p class="text-xs">等待调试日志...</p>
-            <p class="text-[10px] text-slate-600 mt-1">点击节点开始执行</p>
-          </div>
-        </div>
       </div>
     </div>
-  </div>
+  </Transition>
 </template>
 
 <style scoped>
-.custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
+.debug-panel-enter-active,
+.debug-panel-leave-active {
+  transition: all 0.3s ease;
 }
 
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #475569;
-  border-radius: 3px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: #64748b;
+.debug-panel-enter-from,
+.debug-panel-leave-to {
+  opacity: 0;
+  transform: translateY(20px);
 }
 </style>

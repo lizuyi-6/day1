@@ -1,153 +1,90 @@
 <script setup lang="ts">
 import { Handle, Position } from '@vue-flow/core'
 import { Repeat } from 'lucide-vue-next'
+import { computed } from 'vue'
+import type { Variable } from '@/types/variable'
 
-defineProps(['data', 'selected'])
+const props = defineProps<{
+  data: any
+  selected: boolean
+}>()
+
+const inputs = computed<Variable[]>(() => [
+  {
+    name: 'items',
+    type: 'array',
+    description: '要循环的数组',
+    defaultValue: props.data.items || []
+  }
+])
+
+const outputs = computed<Variable[]>(() => [
+  {
+    name: 'item',
+    type: 'any',
+    description: '当前循环项'
+  },
+  {
+    name: 'index',
+    type: 'number',
+    description: '当前索引'
+  }
+])
+
+const isActive = computed(() => props.data.status === 'running')
 </script>
 
 <template>
-  <div class="custom-node loop-node" :class="{ selected }">
-    <div class="node-header">
-      <div class="icon-wrapper">
-        <Repeat class="icon-svg" :size="20" />
+  <div class="w-[200px] rounded-md bg-white dark:bg-[#1e1711] shadow-md z-20 transition-all duration-200"
+       :class="[
+         selected ? 'ring-2 ring-amber-500 shadow-xl' : 'border border-amber-500/30 dark:border-amber-500/20 shadow-amber-100/50 dark:shadow-amber-900/20 ring-1 ring-amber-500/10',
+         isActive ? 'ring-2 ring-amber-400 shadow-[0_0_15px_rgba(245,158,11,0.5)]' : ''
+       ]">
+
+    <div class="flex items-center gap-3 border-b border-amber-100 dark:border-amber-900/30 bg-amber-50/50 dark:bg-amber-900/20 px-3 py-2.5 rounded-t-md">
+      <div class="flex h-8 w-8 items-center justify-center rounded bg-white dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 shadow-sm ring-1 ring-amber-200 dark:ring-amber-700">
+        <Repeat :size="16" />
       </div>
-      <div class="title-wrapper">
-        <div class="title">循环 (Loop)</div>
-        <div class="sub-title">ForEach Item</div>
+      <div>
+        <h3 class="text-xs font-bold text-amber-950 dark:text-amber-300 uppercase tracking-wide">{{ data.label || '循环' }}</h3>
+        <p class="text-[10px] font-medium text-amber-500/80 dark:text-amber-400/60">ForEach Item</p>
       </div>
     </div>
 
-    <div class="node-body">
-         <div class="info">List Iterator</div>
+    <div class="p-3 space-y-2">
+      <div class="text-[10px] text-amber-700 dark:text-amber-400/70">
+        遍历数组中的每个元素
+      </div>
     </div>
 
-    <Handle type="target" :position="Position.Left" class="handle-input" />
-
-    <div class="handle-group-body">
-        <Handle type="source" :position="Position.Right" id="body" class="handle-body" />
-        <span class="handle-label">Body</span>
+    <div class="flex items-center justify-between border-t border-amber-100 dark:border-amber-900/30 bg-amber-50/30 dark:bg-amber-900/10 px-3 py-2 rounded-b-md">
+      <div class="flex items-center gap-2 text-[9px] text-amber-500 dark:text-amber-400/60">
+        <span>输出:</span>
+        <span class="font-mono">item, index</span>
+      </div>
     </div>
 
-    <div class="handle-group-done">
-        <Handle type="source" :position="Position.Right" id="done" class="handle-done" />
-        <span class="handle-label">Done</span>
+    <Handle 
+      type="target" 
+      :position="Position.Left"
+      class="!w-2.5 !h-2.5 !bg-amber-500 !border-2 !border-white dark:!border-[#1e1711] !rounded-full !-ml-[5px]" />
+
+    <div class="absolute right-0 top-[50px] flex items-center">
+      <span class="absolute right-5 text-[9px] font-bold text-amber-600 dark:text-amber-400 pointer-events-none">BODY</span>
+      <Handle 
+        type="source" 
+        :position="Position.Right"
+        id="body"
+        class="!w-2.5 !h-2.5 !bg-amber-400 !border-2 !border-white dark:!border-[#1e1711] !rounded-full !-mr-[5px]" />
+    </div>
+
+    <div class="absolute right-0 top-[90px] flex items-center">
+      <span class="absolute right-5 text-[9px] font-bold text-emerald-600 dark:text-emerald-400 pointer-events-none">DONE</span>
+      <Handle 
+        type="source" 
+        :position="Position.Right"
+        id="done"
+        class="!w-2.5 !h-2.5 !bg-white dark:!bg-amber-900 !border-2 !border-amber-500 !rounded-full !-mr-[5px]" />
     </div>
   </div>
 </template>
-
-<style scoped>
-.loop-node {
-  background: white;
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(0,0,0,0.1);
-  border-left: 4px solid #f39c12;
-  border-radius: 12px;
-  min-width: 180px;
-  color: var(--text-main);
-  font-family: var(--font-ui);
-  position: relative;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-}
-
-.loop-node:hover {
-    border-color: rgba(243, 156, 18, 0.5);
-    box-shadow: 0 8px 24px rgba(243, 156, 18, 0.15);
-    transform: translateY(-2px);
-}
-
-.loop-node.selected {
-  border-color: #f39c12;
-  box-shadow: 0 0 0 2px rgba(243, 156, 18, 0.2), 0 8px 24px rgba(0,0,0,0.1);
-}
-
-.node-header {
-  padding: 12px 16px;
-  border-bottom: 1px solid rgba(0,0,0,0.05);
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.icon-wrapper {
-    width: 32px;
-    height: 32px;
-    background: rgba(243, 156, 18, 0.1);
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.2rem;
-}
-
-.title-wrapper {
-    display: flex;
-    flex-direction: column;
-}
-
-.title {
-    font-weight: 600;
-    font-size: 0.9rem;
-    color: var(--text-main);
-}
-
-.sub-title {
-    font-size: 0.7rem;
-    color: var(--text-dim);
-}
-
-.node-body {
-    padding: 12px 16px;
-    font-size: 0.8rem;
-    color: var(--text-dim);
-}
-
-.handle-input {
-    background: #f39c12;
-    width: 10px;
-    height: 10px;
-    border: 2px solid white;
-}
-
-.handle-group-body, .handle-group-done {
-    position: absolute;
-    right: 0;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    transform: translateX(50%); /* Adjust handle position */
-}
-
-/* Custom positioning for specific handles */
-.handle-group-body { top: 40px; }
-.handle-group-done { top: 80px; }
-
-.handle-body {
-    position: relative;
-    background: #f1c40f;
-    width: 10px;
-    height: 10px;
-    border: 2px solid white;
-    right: auto;
-    transform: none;
-}
-
-.handle-done {
-    position: relative;
-    background: white;
-    width: 10px;
-    height: 10px;
-    border: 2px solid #f39c12;
-    right: auto;
-    transform: none;
-}
-
-.handle-label {
-    position: absolute;
-    right: 15px;
-    font-size: 0.7rem;
-    font-weight: 600;
-    color: var(--text-dim);
-    pointer-events: none;
-}
-</style>

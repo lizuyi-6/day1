@@ -11,7 +11,6 @@ import {
 @Index(['updatedAt'])
 @Index(['createdAt'])
 @Index(['browserId'])
-@Index(['browserId', 'name'], { unique: true })
 export class Workflow {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -28,13 +27,13 @@ export class Workflow {
   @Column({ type: 'json', nullable: true })
   graphData: object;
 
-  @Column({ type: 'enum', enum: ['draft', 'published', 'archived'], default: 'draft' })
-  status: 'draft' | 'published' | 'archived';
+  @Column({ type: 'text', default: 'draft' })
+  status: string;
 
   @Column({ type: 'text', nullable: true })
   deploymentUrl: string;
 
-  @Column({ type: 'timestamp', nullable: true })
+  @Column({ type: 'datetime', nullable: true })
   deployedAt: Date;
 
   @CreateDateColumn()

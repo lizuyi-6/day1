@@ -8,6 +8,11 @@ import router from './router'
 
 // 导入开发模式工具
 import { setupAPIInterceptor, setupGlobalErrorHandler, setupConsoleInterceptor } from './utils/apiInterceptor'
+import { getBrowserId } from './utils/cookie'
+
+// 初始化浏览器ID（确保在第一个API调用前设置）
+const browserId = getBrowserId()
+console.log('[main.ts] Browser ID initialized:', browserId)
 
 // 创建应用实例
 const app = createApp(App)

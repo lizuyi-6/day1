@@ -71,7 +71,11 @@ const loadAgents = async () => {
         console.log('🔄 Loading agents (deployed workflows)...');
         // Use workflowService to get workflows properly with auth headers
         // Pass status parameter to filter only published (deployed) workflows
-        const result = await workflowService.getAllWorkflows(1, 50, 'published');
+        const result = await workflowService.getAllWorkflows({ 
+          page: 1, 
+          limit: 50, 
+          status: 'published' 
+        });
         console.log('📥 Agents result:', result);
         
         if (result.success && result.workflows) {
@@ -433,7 +437,7 @@ const sendMessage = async () => {
 
       // If still no text found, stringify the entire result for debugging
       if (!outputText) {
-        outputText = JSON.stringify(result, null, 2);
+        outputText = '未获取到有效回复';
       }
 
       loading.value = false;

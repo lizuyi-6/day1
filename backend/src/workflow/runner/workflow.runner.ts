@@ -53,11 +53,13 @@ export class WorkflowRunner {
   setModuleRef(moduleRef: ModuleRef) {
     this.moduleRef = moduleRef;
     this.initializeDefaultNodes();
-    try {
-      this.workflowGateway = this.moduleRef.get(WorkflowGateway, { strict: false });
-    } catch (e) {
-      this.logger.warn('WorkflowGateway not found, real-time updates disabled');
+
+    // CRITICAL: Ensure gateway is available
+    if (!this.moduleRef.get(WorkflowGateway)) {
+      throw new Error('WorkflowGateway is required for real-time execution updates');
     }
+
+    this.workflowGateway = this.moduleRef.get(WorkflowGateway, { strict: false });
   }
 
   private registerDefaultNodes() {
@@ -203,16 +205,32 @@ export class WorkflowRunner {
           const sourceHandle = edge.sourceHandle || 'output';
           const targetHandle = edge.targetHandle || 'input';
 
+          console.log(`Data transfer: from ${edge.source} (${sourceHandle}) to ${currentNodeId} (${targetHandle})`);
+          console.log(`Available outputs: ${JSON.stringify(Object.keys(predecessorOutput))}`);
+
           if (predecessorOutput[sourceHandle] !== undefined) {
             inputs[targetHandle] = predecessorOutput[sourceHandle];
+            console.log(`Direct match: ${sourceHandle} -> ${targetHandle} = ${JSON.stringify(predecessorOutput[sourceHandle])}`);
           } else if (Object.keys(predecessorOutput).length === 1) {
             // If there's only one output, use it for the default input
             const singleOutputKey = Object.keys(predecessorOutput)[0];
             inputs[targetHandle] = predecessorOutput[singleOutputKey];
+            console.log(`Single output: ${singleOutputKey} -> ${targetHandle} = ${JSON.stringify(predecessorOutput[singleOutputKey])}`);
           } else {
-            // Merge all outputs if no specific handle
+            // Try to find a matching output field (output_1, output_2, etc.)
+            const outputKey = Object.keys(predecessorOutput).find(
+              k => k === sourceHandle || k.startsWith('output') || k === 'result' || k === 'response'
+            );
+            if (outputKey) {
+              inputs[targetHandle] = predecessorOutput[outputKey];
+              console.log(`Matching field: ${outputKey} -> ${targetHandle} = ${JSON.stringify(predecessorOutput[outputKey])}`);
+            }
+            // Also merge all outputs for nodes that need all data
             Object.assign(inputs, predecessorOutput);
+            console.log(`Merged all outputs: ${JSON.stringify(inputs)}`);
           }
+        } else {
+          console.log(`No output from predecessor: ${edge.source}`);
         }
       }
 
@@ -223,7 +241,21 @@ export class WorkflowRunner {
 
         // Emit node running event
         if (this.workflowGateway && externalWorkflowId) {
+            this.logger.debug(`Emitting node-status: running for node ${currentNodeId}`);
+            this.logger.debug(`externalWorkflowId: ${externalWorkflowId}`);
             this.workflowGateway.emitNodeStatus(externalWorkflowId, currentNodeId, 'running');
+            this.workflowGateway.emitExecutionLog(externalWorkflowId, {
+                type: 'info',
+                nodeId: currentNodeId,
+                nodeName: nodeData.data?.label || currentNodeId,
+                message: `正在执行节点 ${nodeData.data?.label || currentNodeId}...`,
+                timestamp: Date.now()
+            });
+        } else {
+            this.logger.warn(`Cannot emit node-status: running - gateway: ${!!this.workflowGateway}, workflowId: ${!!externalWorkflowId}`);
+            if (!externalWorkflowId) {
+                this.logger.error(`externalWorkflowId is falsy: ${externalWorkflowId}`);
+            }
         }
 
         const outputs = await this.executeNodeWithRetry(
@@ -237,7 +269,17 @@ export class WorkflowRunner {
 
         // Emit node success event
         if (this.workflowGateway && externalWorkflowId) {
+            this.logger.debug(`Emitting node-status: success for node ${currentNodeId}`);
             this.workflowGateway.emitNodeStatus(externalWorkflowId, currentNodeId, 'success', { outputs });
+            this.workflowGateway.emitExecutionLog(externalWorkflowId, {
+                type: 'success',
+                nodeId: currentNodeId,
+                nodeName: nodeData.data?.label || currentNodeId,
+                message: `节点 ${nodeData.data?.label || currentNodeId} 执行成功`,
+                timestamp: Date.now()
+            });
+        } else {
+            this.logger.warn(`Cannot emit node-status: success - gateway: ${!!this.workflowGateway}, workflowId: ${!!externalWorkflowId}`);
         }
 
         // Save checkpoint
@@ -259,7 +301,17 @@ export class WorkflowRunner {
         );
         // Emit node error event
         if (this.workflowGateway && externalWorkflowId) {
+            this.logger.debug(`Emitting node-status: error for node ${currentNodeId}`);
             this.workflowGateway.emitNodeStatus(externalWorkflowId, currentNodeId, 'error', { error: error.message });
+            this.workflowGateway.emitExecutionLog(externalWorkflowId, {
+                type: 'error',
+                nodeId: currentNodeId,
+                nodeName: nodeData.data?.label || currentNodeId,
+                message: `节点 ${nodeData.data?.label || currentNodeId} 执行失败: ${error.message}`,
+                timestamp: Date.now()
+            });
+        } else {
+            this.logger.warn(`Cannot emit node-status: error - gateway: ${!!this.workflowGateway}, workflowId: ${!!externalWorkflowId}`);
         }
         throw error;
       }

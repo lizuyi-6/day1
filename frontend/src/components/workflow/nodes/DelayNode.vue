@@ -1,98 +1,60 @@
 <script setup lang="ts">
 import { Handle, Position } from '@vue-flow/core'
 import { Hourglass } from 'lucide-vue-next'
+import { computed } from 'vue'
+import type { Variable } from '@/types/variable'
 
-defineProps(['data', 'selected'])
+const props = defineProps<{
+  data: any
+  selected: boolean
+}>()
+
+const inputs = computed<Variable[]>(() => [
+  {
+    name: 'duration',
+    type: 'number',
+    description: '延时时间（秒）',
+    defaultValue: props.data.duration || 5
+  }
+])
+
+const outputs = computed<Variable[]>(() => [
+  {
+    name: 'output',
+    type: 'any',
+    description: '传递上游数据'
+  }
+])
+
+const isActive = computed(() => props.data.status === 'running')
+const duration = computed(() => props.data.duration || 5)
 </script>
 
 <template>
-  <div class="custom-node delay-node" :class="{ selected }">
-    <div class="node-content">
-        <div class="icon-wrapper">
-             <Hourglass class="icon-svg" :size="18" />
-        </div>
-        <div class="info-wrapper">
-             <div class="title">延时 (Delay)</div>
-             <div class="value">{{ data.duration || '5s' }}</div>
-        </div>
+  <div class="w-[180px] rounded-full bg-white dark:bg-[#1e1711] shadow-md z-20 transition-all duration-200"
+       :class="[
+         selected ? 'ring-2 ring-slate-500 shadow-xl' : 'border border-slate-500/30 dark:border-slate-500/20 ring-1 ring-slate-500/10',
+         isActive ? 'ring-2 ring-slate-400 shadow-[0_0_15px_rgba(100,116,139,0.5)]' : ''
+       ]">
+
+    <div class="flex items-center gap-3 px-4 py-3">
+      <div class="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 shadow-sm">
+        <Hourglass :size="16" />
+      </div>
+      <div class="flex-1">
+        <h3 class="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide">{{ data.label || '延时' }}</h3>
+        <p class="text-[10px] font-mono text-slate-500 dark:text-slate-400">{{ duration }}s</p>
+      </div>
     </div>
 
-    <Handle type="target" :position="Position.Left" class="handle-input" />
-    <Handle type="source" :position="Position.Right" class="handle-output" />
+    <Handle 
+      type="target" 
+      :position="Position.Left"
+      class="!w-2.5 !h-2.5 !bg-slate-500 !border-2 !border-white dark:!border-[#1e1711] !rounded-full !-ml-[5px]" />
+
+    <Handle 
+      type="source" 
+      :position="Position.Right"
+      class="!w-2.5 !h-2.5 !bg-white dark:!bg-slate-800 !border-2 !border-slate-500 !rounded-full !-mr-[5px]" />
   </div>
 </template>
-
-<style scoped>
-.delay-node {
-  background: white;
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(127, 140, 141, 0.2);
-  border-radius: 50px; /* Pill shape for Delay */
-  padding: 6px 16px;
-  min-width: 140px;
-  color: var(--text-main);
-  font-family: var(--font-ui);
-  display: flex;
-  align-items: center;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-}
-
-.delay-node:hover {
-    border-color: rgba(127, 140, 141, 0.5);
-    box-shadow: 0 6px 16px rgba(0,0,0,0.08);
-    transform: translateY(-2px);
-}
-
-.delay-node.selected {
-  border-color: #7f8c8d;
-  box-shadow: 0 0 0 2px rgba(127, 140, 141, 0.2), 0 8px 25px rgba(0,0,0,0.1);
-}
-
-.node-content {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-
-.icon-wrapper {
-    width: 32px;
-    height: 32px;
-    background: rgba(127, 140, 141, 0.1);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1rem;
-}
-
-.info-wrapper {
-    display: flex;
-    flex-direction: column;
-}
-
-.title {
-    font-size: 0.65rem;
-    color: var(--text-dim);
-    text-transform: uppercase;
-    font-weight: 600;
-}
-.value {
-    font-weight: 700;
-    font-size: 0.9rem;
-    color: var(--text-main);
-}
-
-.handle-input {
-    background: #7f8c8d;
-    width: 10px;
-    height: 10px;
-    border: 2px solid white;
-}
-.handle-output {
-    background: white;
-    width: 10px;
-    height: 10px;
-    border: 2px solid #7f8c8d;
-}
-</style>

@@ -174,7 +174,9 @@ const deployWorkflow = async (workflow: Workflow) => {
 
 // Sort workflows
 const sortedWorkflows = computed(() => {
-  const sorted = [...workflows.value];
+  // Safety check: ensure workflows.value is an array
+  const workflowsArray = Array.isArray(workflows.value) ? workflows.value : [];
+  const sorted = [...workflowsArray];
 
   sorted.sort((a, b) => {
     let comparison = 0;

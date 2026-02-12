@@ -10,6 +10,7 @@ import { AuthGuard } from '@nestjs/passport';
 export class HybridAuthGuard extends AuthGuard('jwt') {
   constructor(private reflector: Reflector) {
     super();
+    console.log('🔄 HybridAuthGuard RELOADED v2 - Enhanced debugging active');
   }
 
   canActivate(context: ExecutionContext) {
@@ -25,10 +26,11 @@ export class HybridAuthGuard extends AuthGuard('jwt') {
     const request = context.switchToHttp().getRequest();
     const hasJwtToken = request.headers.authorization?.startsWith('Bearer ');
     
-    // Check cookies (requires cookie-parser) and headers
-    const browserId = request.cookies?.browser_id 
+    // Check cookies, X-Browser-Id header (case-insensitive), and req.browserId set by middleware
+    // IMPORTANT: Headers in Express/NestJS are case-insensitive when accessed via bracket notation
+    const browserId = request.cookies?.browser_id
       || request.headers['x-browser-id']
-      || request.headers['X-Browser-Id']; // Fallback for case sensitivity if not normalized
+      || (request as any).browserId; // Fallback to value set by BrowserIdMiddleware
 
     if (!hasJwtToken && !browserId) {
       console.log('🔒 Auth Guard Failed');

@@ -16,8 +16,8 @@ export class Knowledge {
   @Column('text')
   content: string;
 
-  // 使用 pgvector 存储 embedding 数据
-  @Column({ type: 'vector', nullable: true })
+  // SQLite 使用 json 存储 embedding 数据（生产环境建议使用 PostgreSQL + pgvector）
+  @Column({ type: 'json', nullable: true })
   embedding: number[];
 
   @CreateDateColumn()

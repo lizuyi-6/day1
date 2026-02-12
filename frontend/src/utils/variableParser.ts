@@ -52,7 +52,6 @@ export function buildVariableContext(nodes: any[], edges: any[]): VariableContex
         }
       })
     }
-  }
   })
 
   return context

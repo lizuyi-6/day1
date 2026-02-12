@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, shallowRef, onMounted, watch, onUnmounted, defineAsyncComponent, computed, nextTick } from 'vue'
 import { VueFlow, useVueFlow, type Node, type Edge } from '@vue-flow/core'
+import { io, Socket } from 'socket.io-client'
 
 import { Background } from '@vue-flow/background'
 import { Controls } from '@vue-flow/controls'
@@ -17,21 +18,20 @@ import {
 import { RouterLink, useRoute } from 'vue-router'
 import Logo from '@/components/layout/Logo.vue'
 
-// Components
+const vueFlow = useVueFlow()
+const { onConnect, addEdges, addNodes, project: vueFlowProject, onNodeClick, onPaneReady, fitView, removeNodes, removeEdges, getSelectedNodes, getSelectedEdges } = vueFlow
+
 import WorkflowSidebar from '@/components/workflow/WorkflowSidebar.vue'
 import WorkflowInspector from '@/components/workflow/WorkflowInspector.vue'
 import DebugPanel from '@/components/workflow/DebugPanel.vue'
-import ExecutionLogPanel from '@/components/workflow/ExecutionLogPanel.vue'
-import ExecutionHistoryPanel from '@/components/workflow/ExecutionHistoryPanel.vue'
-import InputPanel from '@/components/workflow/InputPanel.vue'
-import OutputPanel from '@/components/workflow/OutputPanel.vue'
-import ExecutionDialog from '@/components/workflow/ExecutionDialog.vue'
-import TerminalOutput from '@/components/workflow/TerminalOutput.vue'
+import ExecutionPanel from '@/components/workflow/ExecutionPanel.vue'
 import VersionHistoryDialog from '@/components/workflow/VersionHistoryDialog.vue'
 import ErrorToast, { type ToastMessage } from '@/components/common/ErrorToast.vue'
 import { executionHistoryService, type ExecutionHistory as BackendExecutionHistory } from '@/services/executionHistoryService'
-import type { ExecutionLogEntry } from '@/components/workflow/ExecutionLogPanel.vue'
-import type { ExecutionHistoryRecord } from '@/components/workflow/ExecutionHistoryPanel.vue'
+import * as workflowService from '@/services/workflowService'
+import type { ExecutionLogEntry } from '@/components/workflow/ExecutionPanel.vue'
+
+// Imports cleared - force Vite recompilation
 
 // Toast messages
 const toastMessages = ref<ToastMessage[]>([])
@@ -190,10 +190,6 @@ const NotificationNode = defineAsyncComponent(() => import('@/components/workflo
 const EmailNode = defineAsyncComponent(() => import('@/components/workflow/nodes/EmailNode.vue'))
 const CustomAnimatedEdge = defineAsyncComponent(() => import('@/components/workflow/edges/CustomAnimatedEdge.vue'))
 
-// Services
-import { workflowService } from '@/services/workflowService'
-
-const { onConnect, addEdges, addNodes, project, onNodeClick, onPaneReady, fitView, removeNodes, removeEdges, getSelectedNodes, getSelectedEdges } = useVueFlow()
 const route = useRoute()
 
 const nodes = shallowRef<Node[]>([])
@@ -216,15 +212,13 @@ const executionProgress = ref(0)
 
 // Execution logs
 const executionLogs = ref<ExecutionLogEntry[]>([])
-const showExecutionLog = ref(true)
 
-// Input/Output panels
-const showInputPanel = ref(false)
-const showOutputPanel = ref(false)
-const showExecutionDialog = ref(false)
-const showTerminal = ref(false)
-const showVersionHistory = ref(false)
+// WebSocket connection
+const socket = ref<Socket | null>(null)
+
+// Execution result
 const executionResult = ref<any>(null)
+const executionTime = ref(0)
 
 // Check if this is a new workflow that should show example
 const isNewWorkflow = computed(() => route.query.new === 'true')
@@ -242,7 +236,10 @@ interface ExecutionHistory {
   error?: string
 }
 const executionHistory = ref<ExecutionHistory[]>([])
-const showHistoryPanel = ref(false)
+const showVersionHistory = ref(false)
+
+// Current workflow ID
+const workflowId = computed(() => (route.params.id as string) || '')
 
 // Thumbnail management
 const showThumbnailPreview = ref(false)
@@ -324,14 +321,24 @@ const onDrop = (event: DragEvent) => {
     type: type,
     position: adjustedPosition,
     data: {
-      label: `${type} node`,
+      label: type === 'start' ? '开始' : type === 'end' ? '结束' : type === 'llm' ? 'LLM' : `${type} node`,
+      ...(type === 'start' ? {
+        inputs: [
+          { name: 'prompt', type: 'string', description: '用户输入的提示词', defaultValue: '', required: true }
+        ],
+        outputs: [
+          { name: 'prompt', type: 'string', description: '传递给下游节点的提示词' }
+        ]
+      } : {}),
       ...(type === 'llm' ? {
         provider: 'qwen',
         apiKey: 'sk-9dd62d22ea0b439eb96f6800d6c7749a',
         model: 'qwen-flash',
         baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
         temperature: 0.7,
-        maxTokens: 4096
+        maxTokens: 4096,
+        systemPrompt: '',
+        prompt: ''
       } : {})
     }
   }
@@ -432,7 +439,9 @@ const saveWorkflow = async () => {
       window.history.replaceState({}, '', `/workflow/${workflowId}`)
 
       // 使用新的workflowId继续保存
-      const result = await workflowService.saveWorkflow(workflowId, nodes.value, edges.value)
+      const result = await workflowService.saveWorkflow(workflowId, {
+        graphData: { nodes: nodes.value, edges: edges.value }
+      })
 
       if (result.success) {
         saveStatus.value = 'saved'
@@ -458,7 +467,9 @@ const saveWorkflow = async () => {
   } else {
     // 已有ID，直接保存
     try {
-      const result = await workflowService.saveWorkflow(workflowId, nodes.value, edges.value)
+      const result = await workflowService.saveWorkflow(workflowId, {
+        graphData: { nodes: nodes.value, edges: edges.value }
+      })
 
       if (result.success) {
         saveStatus.value = 'saved'
@@ -535,7 +546,9 @@ const runWorkflow = async (inputData?: Record<string, any>, mode: 'normal' | 'de
     }
 
     // 保存工作流数据
-    const saveResult = await workflowService.saveWorkflow(workflowId, nodes.value, edges.value)
+    const saveResult = await workflowService.saveWorkflow(workflowId, {
+      graphData: { nodes: nodes.value, edges: edges.value }
+    })
     if (saveResult.success) {
       saveStatus.value = 'saved'
       lastSaved.value = new Date().toLocaleTimeString()
@@ -588,10 +601,19 @@ const runWorkflow = async (inputData?: Record<string, any>, mode: 'normal' | 'de
   })
 
   let result: any = null
+  let totalExecutionTime = 0
 
   try {
     console.log('🚀 开始执行工作流...')
     console.log('📥 输入数据:', inputData)
+
+    // ✅ FIX: 通过WebSocket加入workflow房间以接收实时更新 - 必须在执行前加入
+    // 通过WebSocket加入workflow房间以接收实时更新
+    if (socket.value) {
+      socket.value.emit('join-workflow', workflowId)
+      console.log('📡 加入workflow房间:', workflowId)
+    }
+
     addExecutionLog({
       id: `${executionId}-system`,
       timestamp: Date.now(),
@@ -601,38 +623,16 @@ const runWorkflow = async (inputData?: Record<string, any>, mode: 'normal' | 'de
       message: '开始执行工作流'
     })
 
-    // 启动节点高亮动画和日志更新
-    let nodeIndex = 0
-    const highlightInterval = setInterval(() => {
-      if (nodeIndex < executionOrder.length) {
-        const nodeId = executionOrder[nodeIndex]
-        const log = nodeLogMap.get(nodeId)
-        const node = nodes.value.find(n => n.id === nodeId)
-
-        if (log && node) {
-          // 更新日志状态
-          log.status = 'running'
-          log.message = '正在执行...'
-          log.timestamp = Date.now()
-
-          if (!log.input && node?.data?.inputs) {
-            log.input = node.data.inputs
-          }
-        }
-
-        currentExecutingNode.value = nodeId
-        nodeIndex++
-      } else {
-        clearInterval(highlightInterval)
-        currentExecutingNode.value = null
-      }
-    }, 800)
-
-    // 执行工作流
+    // 执行工作流（不再使用setInterval模拟，WebSocket会实时推送节点状态）
     result = await workflowService.executeWorkflow(workflowId, inputData || { input: 'Test Input from UI' })
 
-    // 清除高亮动画
-    clearInterval(highlightInterval)
+    // 执行完成后离开workflow房间
+    if (socket.value) {
+      socket.value.emit('leave-workflow', workflowId)
+      console.log('📡 离开workflow房间:', workflowId)
+    }
+
+    // 不再需要清除高亮动画，因为WebSocket会实时更新节点状态
     currentExecutingNode.value = null
 
     // 标记所有节点为成功
@@ -668,9 +668,8 @@ const runWorkflow = async (inputData?: Record<string, any>, mode: 'normal' | 'de
       executedNodes.value.add(nodeId)
     })
 
-    // 计算实际执行时间
-    const executionTime = Date.now() - startTime
-    console.log(`  工作流执行成功，耗时: ${executionTime}ms`)
+    totalExecutionTime = Date.now() - startTime
+    console.log(`  工作流执行成功，耗时: ${totalExecutionTime}ms`)
 
     // 添加系统日志
     addExecutionLog({
@@ -679,7 +678,7 @@ const runWorkflow = async (inputData?: Record<string, any>, mode: 'normal' | 'de
       nodeId: 'system',
       nodeName: '系统',
       status: 'success',
-      message: `工作流执行成功 (耗时 ${executionTime}ms)`
+      message: `工作流执行成功 (耗时 ${totalExecutionTime}ms)`
     })
 
     // 保存到执行历史
@@ -687,7 +686,7 @@ const runWorkflow = async (inputData?: Record<string, any>, mode: 'normal' | 'de
       id: executionId,
       timestamp: startTime,
       workflowId,
-      duration: executionTime,
+      duration: totalExecutionTime,
       status: 'success',
       nodeCount: executionOrder.length,
       logs: [...executionLogs.value],
@@ -695,23 +694,13 @@ const runWorkflow = async (inputData?: Record<string, any>, mode: 'normal' | 'de
     })
 
     // 显示成功结果
-    showSuccess('执行成功', `执行时间: ${executionTime}ms`)
+    showSuccess('执行成功', `执行时间: ${totalExecutionTime}ms`)
   } catch (e) {
     console.error('  工作流执行失败:', e)
 
     const errorMsg = e instanceof Error ? e.message : '未知错误'
 
-    // 更新当前执行节点为失败状态
-    if (currentExecutingNode.value) {
-      const log = nodeLogMap.get(currentExecutingNode.value)
-      if (log) {
-        log.status = 'error'
-        log.message = '执行失败'
-        log.error = errorMsg
-      }
-    }
-
-    // 添加系统错误日志
+    // 添加系统错误日志（只有在执行失败时才有这个日志）
     addExecutionLog({
       id: `${executionId}-error`,
       timestamp: Date.now(),
@@ -723,11 +712,12 @@ const runWorkflow = async (inputData?: Record<string, any>, mode: 'normal' | 'de
     })
 
     // 保存到执行历史
+    totalExecutionTime = Date.now() - startTime
     saveToHistory({
       id: executionId,
       timestamp: startTime,
       workflowId,
-      duration: Date.now() - startTime,
+      duration: totalExecutionTime,
       status: 'error',
       nodeCount: executionOrder.length,
       logs: [...executionLogs.value],
@@ -739,15 +729,15 @@ const runWorkflow = async (inputData?: Record<string, any>, mode: 'normal' | 'de
     isExecuting.value = false
     executionProgress.value = 0
     executionResult.value = result
-    showOutputPanel.value = true
+    executionTime.value = totalExecutionTime
   }
 }
 
 // 获取 Start 节点的输入变量
 const getStartNodeInputs = () => {
   const startNode = nodes.value.find(n => n.type === 'start')
-  if (startNode?.data?.inputs) {
-    return startNode.data.inputs
+  if (startNode?.data?.outputs) {
+    return startNode.data.outputs
   }
   return []
 }
@@ -784,8 +774,7 @@ const getNodeExecutionClass = (nodeId: string): string => {
 // 保存到执行历史
 const saveToHistory = async (record: ExecutionHistory) => {
   try {
-    const backendRecord: BackendExecutionHistory = {
-      id: record.id,
+    const backendRecord = {
       workflowId: record.workflowId,
       status: record.status,
       duration: record.duration,
@@ -808,37 +797,6 @@ const saveToHistory = async (record: ExecutionHistory) => {
     executionHistory.value.unshift(record)
     if (executionHistory.value.length > 50) {
       executionHistory.value = executionHistory.value.slice(0, 50)
-    }
-  }
-}
-
-// 查看历史记录详情
-const viewHistoryRecord = (record: ExecutionHistoryRecord) => {
-  executionLogs.value = record.logs
-  showExecutionLog.value = true
-  showHistoryPanel.value = false
-}
-
-// 删除历史记录
-const deleteHistoryRecord = async (id: string) => {
-  if (confirm('确定要删除这条执行记录吗？')) {
-    try {
-      await executionHistoryService.delete(id)
-      executionHistory.value = executionHistory.value.filter(r => r.id !== id)
-    } catch (error) {
-      console.error('Failed to delete execution history:', error)
-    }
-  }
-}
-
-// 清空所有历史记录
-const clearHistory = async () => {
-  if (confirm('确定要清空所有执行历史吗？此操作不可恢复。')) {
-    try {
-      await executionHistoryService.clear()
-      executionHistory.value = []
-    } catch (error) {
-      console.error('Failed to clear execution history:', error)
     }
   }
 }
@@ -899,38 +857,15 @@ const calculateExecutionOrder = (): string[] => {
 // 节点点击处理（通过 onNodeClick 监听器统一处理，见底部）
 
 const executeNode = async (nodeId: string) => {
+  const workflowId = (route.params.id as string) || 'temp'
   try {
-    const result = await workflowService.debugNode(currentWorkflowId.value, nodeId, {})
+    const result = await workflowService.debugNode(workflowId, nodeId, {})
     
     console.log('Node execution result:', result)
-    
-    if (result.success) {
-      debugLogs.value.push({
-        timestamp: Date.now(),
-        level: 'success',
-        nodeId,
-        message: '节点执行成功',
-        data: result.outputs
-      })
-    } else {
-      debugLogs.value.push({
-        timestamp: Date.now(),
-        level: 'error',
-        nodeId,
-        message: result.error || '节点执行失败',
-        data: result.inputs
-      })
-    }
     
     return result
   } catch (error: any) {
     console.error('Failed to execute node:', error)
-    debugLogs.value.push({
-      timestamp: Date.now(),
-      level: 'error',
-      nodeId,
-      message: error.message || '执行节点时出错'
-    })
     throw error
   }
 }
@@ -1164,11 +1099,13 @@ onPaneReady(({ fitView }) => {
     console.log('📝 Workflow ID:', workflowId)
     console.log('🆕 Is new workflow:', isNewWorkflow.value)
 
-    // 如果有工作流ID，先加载已有工作流
-    if (workflowId) {
-        console.log('📂 加载已有工作流:', workflowId)
-        loadWorkflow(workflowId, fitView)
-    }
+    // 延迟加载工作流，等待页面转换动画完成
+    setTimeout(() => {
+        if (workflowId) {
+            console.log('📂 加载已有工作流:', workflowId)
+            loadWorkflow(workflowId, fitView)
+        }
+    }, 500)
 })
 
 // Load workflow from backend
@@ -1530,7 +1467,9 @@ onNodeClick((event) => {
 
 const handleVersionRestored = async () => {
   showVersionHistory.value = false
-  await loadWorkflow(workflowId)
+  if (workflowId.value) {
+    await loadWorkflow(workflowId.value)
+  }
   showSuccess('版本恢复成功', '工作流已恢复到选定版本')
 }
 
@@ -1559,12 +1498,113 @@ onMounted(() => {
   //     initializeExampleWorkflow()
   //   }, 100)
   // }
+
+  // 初始化WebSocket连接
+  try {
+    socket.value = io('http://localhost:3001/workflow', {
+      transports: ['websocket', 'polling'],
+      reconnection: true,
+      reconnectionAttempts: 5
+    })
+
+    socket.value.on('connect', () => {
+      console.log('✅ WebSocket已连接')
+    })
+
+    socket.value.on('disconnect', () => {
+      console.log('❌ WebSocket已断开')
+    })
+
+    // ✅ FIX: 组件挂载时立即加入workflow房间，确保接收到所有实时更新
+    onMounted(() => {
+      // 立即加入workflow房间，而不是等到执行时
+      if (socket.value && workflowId.value) {
+        socket.value.emit('join-workflow', workflowId.value)
+        console.log('📡 加入workflow房间 (onMounted):', workflowId.value)
+      }
+    })
+
+    // 监听节点状态更新
+    socket.value.on('node-status', (data: any) => {
+      console.log('📡 收到节点状态更新:', data)
+      
+      // 详细调试信息
+      if (data.status === 'running') {
+        console.log('🚀 执行节点:', data.nodeId)
+      } else if (data.status === 'success') {
+        console.log('✅ 节点执行成功:', data.nodeId)
+      } else if (data.status === 'error') {
+        console.log('❌ 节点执行失败:', data.nodeId, '错误:', data.error)
+      }
+
+      const { nodeId, status, timestamp, outputs } = data
+      const log = executionLogs.value.find(l => l.nodeId === nodeId)
+
+      if (log) {
+        // ✅ FIX: Vue 3 不需要Vue.set()，直接赋值即可触发响应式更新
+        // 因为executionLogs.value是ref，Vue 3的Proxy会自动处理响应式
+        log.status = status
+        log.timestamp = timestamp || Date.now()
+
+        if (status === 'running') {
+          log.message = '正在执行...'
+        } else if (status === 'success') {
+          log.message = '执行成功'
+          if (outputs) {
+            log.output = outputs
+          }
+        } else if (status === 'error') {
+          log.message = '执行失败'
+        }
+      } else {
+        // ✅ FIX: 如果节点不存在于日志中，创建新日志条目
+        const newLog = {
+          nodeId,
+          status,
+          timestamp: timestamp || Date.now(),
+          message: '正在执行...',
+        }
+        executionLogs.value.push(newLog)
+      }
+
+      // 更新当前执行节点
+      if (status === 'running') {
+        currentExecutingNode.value = nodeId
+        console.log('🎯 当前执行节点:', nodeId)
+      } else if (status === 'success' || status === 'error') {
+        executedNodes.value.add(nodeId)
+        console.log('✅ 节点执行完成:', nodeId)
+      }
+    })
+
+    // 监听执行日志
+    socket.value.on('execution-log', (data: any) => {
+      console.log('📡 收到执行日志:', data)
+      workflowService.addTerminalLog({
+        id: Date.now().toString(),
+        type: data.type || 'info',
+        nodeId: data.nodeId,
+        nodeName: data.nodeName,
+        message: data.message,
+        timestamp: data.timestamp || Date.now()
+      })
+    })
+  } catch (error) {
+    console.error('WebSocket连接失败:', error)
+  }
 })
 
 onUnmounted(() => {
   window.removeEventListener('keydown', handleKeyDown)
   window.removeEventListener('click', hideContextMenu)
   window.removeEventListener('resize', handleResize)
+
+  // 断开WebSocket连接
+  if (socket.value) {
+    socket.value.disconnect()
+    socket.value = null
+    console.log('🔌 WebSocket已断开连接')
+  }
 })
 </script>
 
@@ -1657,101 +1697,39 @@ onUnmounted(() => {
               <Camera v-else :size="18" />
           </button>
 
-          <button
-            @click="showExecutionLog = !showExecutionLog"
-            class="flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-bold transition-all border flex-shrink-0"
-            :class="showExecutionLog ? 'bg-primary/10 text-primary border-primary/20' : 'bg-transparent text-charcoal/60 hover:text-primary border-transparent hover:bg-sand/20'"
-            title="日志"
-          >
-              <FileText :size="16" />
-              <span class="hidden md:inline">日志</span>
-          </button>
-
-          <button
-            @click="showInputPanel = !showInputPanel"
-            class="flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-bold transition-all border flex-shrink-0"
-            :class="showInputPanel ? 'bg-indigo-100 text-indigo-600 border-indigo-300' : 'bg-transparent text-charcoal/60 hover:text-indigo-600 border-transparent hover:bg-sand/20'"
-            title="输入"
-          >
-              <FileText :size="16" />
-              <span class="hidden md:inline">输入</span>
-          </button>
-
-          <button
-            @click="showOutputPanel = !showOutputPanel"
-            class="flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-bold transition-all border flex-shrink-0"
-            :class="showOutputPanel ? 'bg-emerald-100 text-emerald-600 border-emerald-300' : 'bg-transparent text-charcoal/60 hover:text-emerald-600 border-transparent hover:bg-sand/20'"
-            title="输出"
-          >
-              <FileText :size="16" />
-              <span class="hidden md:inline">输出</span>
-          </button>
-
-          <button
-            @click="showTerminal = !showTerminal"
-            class="flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-bold transition-all border flex-shrink-0"
-            :class="showTerminal ? 'bg-purple-100 text-purple-600 border-purple-300' : 'bg-transparent text-charcoal/60 hover:text-purple-600 border-transparent hover:bg-sand/20'"
-            title="终端"
-          >
-              <Terminal :size="16" />
-              <span class="hidden md:inline">终端</span>
-          </button>
-
-          <button
-            @click="showHistoryPanel = !showHistoryPanel"
-            class="flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-bold transition-all border flex-shrink-0"
-            :class="showHistoryPanel ? 'bg-primary/10 text-primary border-primary/20' : 'bg-transparent text-charcoal/60 hover:text-primary border-transparent hover:bg-sand/20'"
-            title="历史"
-          >
-              <History :size="16" />
-              <span class="hidden md:inline">历史</span>
-          </button>
+          <div class="h-6 w-px bg-sand/30 dark:bg-white/10 mx-1"></div>
 
           <button
             @click="toggleDebug"
-            class="flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-bold transition-all border flex-shrink-0"
-            :class="debugMode ? 'bg-primary/10 text-primary border-primary/20' : 'bg-transparent text-charcoal/60 hover:text-primary border-transparent hover:bg-sand/20'"
-            :title="debugMode ? '调试中' : '调试'"
-          >
-              <Bug :size="16" />
-              <span class="hidden md:inline">{{ debugMode ? '调试中' : '调试' }}</span>
+            class="flex items-center justify-center p-2 rounded-full transition-colors"
+            :class="debugMode ? 'text-primary bg-primary/10' : 'text-charcoal/60 hover:text-primary hover:bg-sand/20'"
+            :title="debugMode ? '停止调试' : '调试'">
+              <Bug :size="18" />
           </button>
 
           <button
-            @click="showExecutionDialog = true"
-            :disabled="isExecuting"
-            class="flex items-center gap-1.5 px-3 py-2 rounded-full shadow-md transition-all text-xs font-bold active:scale-95 ml-2 flex-shrink-0"
-            :class="isExecuting
-              ? 'bg-amber-500 text-white cursor-wait'
-              : 'bg-emerald-500 text-white hover:shadow-lg hover:bg-emerald-600'"
-            :title="isExecuting ? '执行中...' : '运行'"
-          >
-              <Loader2 v-if="isExecuting" :size="16" class="animate-spin" />
-              <Play v-else :size="16" />
-              <span class="hidden md:inline">
-                {{ isExecuting ? '执行中...' : '运行' }}
-              </span>
+            @click="showVersionHistory = true"
+            class="flex items-center justify-center p-2 rounded-full text-charcoal/60 hover:text-primary hover:bg-sand/20 transition-colors"
+            title="版本历史">
+              <History :size="18" />
           </button>
+
+          <div class="h-6 w-px bg-sand/30 dark:bg-white/10 mx-1"></div>
 
           <button
             @click="deployWorkflow"
             class="flex items-center gap-1.5 px-3 py-2 rounded-full bg-primary text-white shadow-md hover:shadow-lg hover:bg-primary/90 transition-all text-xs font-bold active:scale-95 flex-shrink-0"
-            title="部署"
-          >
+            title="部署">
               <Rocket :size="16" />
               <span class="hidden md:inline">部署</span>
           </button>
       </div>
     </header>
 
-    <div class="flex flex-1 overflow-hidden relative flex flex-col">
+    <div class="flex flex-1 overflow-hidden relative flex-col">
 
-        <!-- Sidebar (Absolute positioned for now or Flex) -->
-        <!-- We use absolute to float over canvas or flex row -->
-        <!-- Keeping Flex Layout as per original -->
-        <div class="flex flex-1 relative overflow-hidden">
-             <!-- Sidebar -->
-            <WorkflowSidebar
+        <div class="flex flex-1 relative overflow-hidden pb-[320px]">
+             <WorkflowSidebar
                 :node-categories="nodeCategories"
                 v-model:search-query="searchQuery"
                 :collapsed="sidebarCollapsed"
@@ -1759,10 +1737,8 @@ onUnmounted(() => {
                 class="z-10 shrink-0"
             />
 
-            <!-- Main Canvas -->
             <main class="relative flex-1 bg-background-light dark:bg-background-dark overflow-hidden h-full w-full">
 
-                <!-- Loading Overlay -->
                 <Transition name="fade">
                     <div v-if="isInitializing" class="absolute inset-0 z-50 flex items-center justify-center bg-white/80 dark:bg-[#1e1711]/80 backdrop-blur-sm">
                         <div class="flex flex-col items-center gap-4">
@@ -1772,7 +1748,6 @@ onUnmounted(() => {
                     </div>
                 </Transition>
 
-                <!-- Floating Controls -->
                 <div class="absolute top-4 left-4 flex flex-col gap-2 z-30">
                     <div class="flex flex-col rounded-xl bg-white/80 dark:bg-[#1e1711]/80 backdrop-blur border border-sand/30 dark:border-white/10 shadow-sm overflow-hidden">
                         <button class="p-2.5 text-khaki hover:text-primary hover:bg-sand/20 transition-colors" title="选择">
@@ -1831,67 +1806,20 @@ onUnmounted(() => {
 
             <!-- Inspector -->
             <WorkflowInspector v-model:selected-node="selectedNode" />
-
-            <!-- Side Panels -->
-            <div class="flex">
-              <Transition name="slide-left">
-                <div
-                  v-if="showExecutionLog"
-                  class="w-80 border-l border-sand/20 bg-white dark:bg-[#1e1711] flex flex-col"
-                >
-                  <ExecutionLogPanel
-                    :logs="executionLogs"
-                    :is-executing="isExecuting"
-                    @clear="clearExecutionLogs"
-                  />
-                </div>
-              </Transition>
-
-              <Transition name="slide-left">
-                <div
-                  v-if="showInputPanel"
-                  class="w-80 border-l border-sand/20 bg-white dark:bg-[#1e1711] flex flex-col"
-                >
-                  <InputPanel
-                    :inputs="getStartNodeInputs()"
-                    :executing="isExecuting"
-                    @execute="runWorkflow"
-                    @close="showInputPanel = false"
-                  />
-                </div>
-              </Transition>
-
-              <Transition name="slide-left">
-                <div
-                  v-if="showOutputPanel"
-                  class="w-80 border-l border-sand/20 bg-white dark:bg-[#1e1711] flex flex-col"
-                >
-                  <OutputPanel
-                    :result="executionResult"
-                    :logs="executionLogs"
-                    :execution-time="executionLogs.length > 0 ? Date.now() - (executionLogs[0]?.timestamp || Date.now()) : 0"
-                    @close="showOutputPanel = false"
-                  />
-                </div>
-              </Transition>
-
-              <Transition name="slide-left">
-                <div
-                  v-if="showTerminal"
-                  class="w-96 border-l border-sand/20 bg-[#0d1117] flex flex-col"
-                >
-                  <TerminalOutput
-                    :logs="workflowService.getTerminalLogs()"
-                    :is-executing="isExecuting"
-                    @clear="workflowService.clearTerminalLogs()"
-                    @copy="() => {}"
-                    @toggle="showTerminal = !showTerminal"
-                  />
-                </div>
-              </Transition>
-            </div>
         </div>
 
+        <!-- Execution Panel (Bottom) -->
+        <ExecutionPanel
+          :inputs="getStartNodeInputs()"
+          :is-executing="isExecuting"
+          :execution-result="executionResult"
+          :execution-logs="executionLogs"
+          :terminal-logs="workflowService.getTerminalLogs()"
+          :execution-time="executionTime"
+          @execute="runWorkflow"
+          @clear-logs="clearExecutionLogs"
+          @clear-terminal="workflowService.clearTerminalLogs()"
+        />
     </div>
 
     <!-- Debug Panel -->
@@ -1990,55 +1918,6 @@ onUnmounted(() => {
         </div>
       </div>
     </Transition>
-
-    <!-- Execution History Modal -->
-    <Transition name="scale">
-      <div
-        v-if="showHistoryPanel"
-        class="fixed inset-0 bg-charcoal/20 backdrop-blur-sm flex items-center justify-center z-[100]"
-        @click.self="showHistoryPanel = false"
-      >
-        <div class="bg-white dark:bg-[#1e1711] rounded-2xl shadow-2xl max-w-4xl w-full mx-6 border border-white/20 flex flex-col max-h-[80vh]">
-          <!-- Header -->
-          <div class="flex items-center justify-between px-6 py-4 border-b border-sand/20">
-            <div class="flex items-center gap-2">
-              <History :size="20" class="text-primary" />
-              <h3 class="font-bold text-lg text-charcoal dark:text-white">执行历史</h3>
-            </div>
-            <button
-              @click="showHistoryPanel = false"
-              class="text-khaki hover:text-charcoal dark:hover:text-white transition-colors"
-            >
-              <XCircle :size="20" />
-            </button>
-          </div>
-
-          <!-- Content -->
-          <div class="flex-1 overflow-hidden">
-            <ExecutionHistoryPanel
-              :history="executionHistory"
-              @view="viewHistoryRecord"
-              @delete="deleteHistoryRecord"
-              @clear="clearHistory"
-            />
-          </div>
-        </div>
-      </div>
-    </Transition>
-
-    <!-- Execution Dialog -->
-    <ExecutionDialog
-      v-if="showExecutionDialog"
-      :nodes="nodes"
-      :edges="edges"
-      :inputs="getStartNodeInputs()"
-      :workflow-name="workflowName"
-      :is-executing="isExecuting"
-      :execution-result="executionResult"
-      :execution-logs="executionLogs"
-      @execute="runWorkflow"
-      @close="showExecutionDialog = false"
-    />
 
     <ErrorToast :messages="toastMessages" @dismiss="dismissToast" />
 

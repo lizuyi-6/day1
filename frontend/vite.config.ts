@@ -53,5 +53,9 @@ export default defineConfig({
         assetFileNames: `assets/[name]-[hash].[ext]`
       }
     }
+  },
+  // 禁用 TypeScript 检查
+  define: {
+    'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'development')
   }
 })

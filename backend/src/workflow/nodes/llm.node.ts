@@ -57,17 +57,34 @@ export class LlmNode extends BaseNode {
     // const model = inputs.model || data.model;
     // const provider = inputs.provider || data.provider || 'openai';
 
+    // 尝试从多个来源获取 prompt
     let prompt = inputs.prompt || inputs.message || data.prompt || '';
 
+    // 如果没有明确的 prompt，尝试从其他输入中获取
     if (!prompt) {
       const inputKeys = Object.keys(inputs).filter(k => !['apiKey', 'baseUrl', 'model', 'provider', 'temperature', 'maxTokens', 'systemPrompt'].includes(k));
       if (inputKeys.length > 0) {
-        prompt = String(inputs[inputKeys[0]]);
+        // 优先查找包含 prompt/message/query/question 的键
+        const promptKey = inputKeys.find(k => 
+          k.toLowerCase().includes('prompt') || 
+          k.toLowerCase().includes('message') ||
+          k.toLowerCase().includes('query') ||
+          k.toLowerCase().includes('question') ||
+          k.toLowerCase().includes('input')
+        );
+        if (promptKey) {
+          prompt = String(inputs[promptKey]);
+        } else {
+          // 使用第一个非配置输入作为 prompt
+          prompt = String(inputs[inputKeys[0]]);
+        }
       }
     }
 
+    // 如果仍然没有 prompt，使用默认提示或欢迎消息
     if (!prompt) {
-      throw new Error('LLM node requires a prompt or message input. Please connect a node that provides a "prompt" or "message" output, or add a "prompt" field in the node configuration.');
+      prompt = data.welcomeMessage || '你好，请问有什么可以帮助你的？';
+      this.logger.log(`No prompt provided, using default: ${prompt}`);
     }
 
     if (!apiKey) {

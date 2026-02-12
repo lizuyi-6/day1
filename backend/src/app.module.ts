@@ -41,12 +41,8 @@ import { envValidationSchema } from './config/env.validation';
       },
     ]),
     TypeOrmModule.forRoot({
-      type: 'postgres',
-      host: process.env.DB_HOST || 'localhost',
-      port: parseInt(process.env.DB_PORT || '5432', 10),
-      username: process.env.DB_USER,
-      password: process.env.DB_PASSWORD,
-      database: process.env.DB_NAME,
+      type: 'sqlite',
+      database: process.env.DB_PATH || 'data/aether_flow.db',
       autoLoadEntities: true,
       synchronize: true,
       logging:
@@ -77,7 +73,8 @@ export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
     consumer
       .apply(BrowserIdMiddleware)
-      .forRoutes({ path: '*', method: RequestMethod.ALL })
+      .forRoutes({ path: '*', method: RequestMethod.ALL });
+    consumer
       .apply(LoggingMiddleware)
       .forRoutes({ path: '*', method: RequestMethod.ALL });
   }
