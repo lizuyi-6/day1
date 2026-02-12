@@ -8,6 +8,27 @@ import { Knowledge } from './entities/knowledge.entity';
 // @ts-ignore
 const pdf = require('pdf-parse');
 
+/**
+ * 简化的 UTF-8 文件名解码
+ * 只尝试 UTF-8 和 Latin-1 解码
+ */
+function decodeFileName(encodedName: string): string {
+  try {
+    // 尝试 Latin-1 解码（Windows 常见）
+    const latin1Decoded = Buffer.from(encodedName, 'latin1').toString('utf8');
+    if (latin1Decoded !== encodedName && /[\u4e00-\u9fff]/.test(latin1Decoded)) {
+      console.log(`[FileName] Latin-1 decode succeeded: ${encodedName} -> ${latin1Decoded}`);
+      return latin1Decoded;
+    }
+  } catch (e) {
+    console.warn('[FileName] Latin-1 decode failed:', e);
+  }
+
+  // 如果 Latin-1 失败，返回原始文件名
+  console.warn(`[FileName] Using original filename: ${encodedName}`);
+  return encodedName;
+}
+
 @Injectable()
 export class KnowledgeService {
   private embeddings: OpenAIEmbeddings;
@@ -45,12 +66,16 @@ export class KnowledgeService {
   async processDocument(file: Express.Multer.File) {
     let text: string;
 
+    // 解码文件名（简化版：只尝试 Latin-1）
+    const decodedFileName = decodeFileName(file.originalname);
+    this.logger.log(`[FileName] Processing file: ${file.originalname} -> ${decodedFileName}`);
+
     // 根据文件类型提取文本
     if (file.mimetype === 'application/pdf') {
       try {
         const data = await pdf(file.buffer);
         text = data.text;
-        this.logger.log(`Extracted ${text.length} characters from PDF: ${file.originalname}`);
+        this.logger.log(`Extracted ${text.length} characters from PDF: ${decodedFileName}`);
       } catch (error) {
         this.logger.error(`PDF parsing failed: ${error.message}`);
         throw new Error(`Failed to parse PDF file: ${error.message}`);
@@ -87,12 +112,14 @@ export class KnowledgeService {
       }
 
       const knowledge = this.knowledgeRepository.create({
-        fileName: file.originalname,
+        fileName: decodedFileName,
         content: chunk.pageContent,
         embedding: vector,
       });
       entities.push(knowledge);
     }
+
+    this.logger.log(`[KnowledgeService] Saved ${chunks.length} chunks for file: ${decodedFileName}`);
 
     return await this.knowledgeRepository.save(entities);
   }
@@ -124,7 +151,7 @@ export class KnowledgeService {
     try {
       // 生成查询向量
       const queryVector = await this.embeddings.embedQuery(sanitizedQuery);
-      
+
       // 使用 pgvector 进行余弦相似度搜索
       const results = await this.knowledgeRepository
         .createQueryBuilder('knowledge')
@@ -148,7 +175,7 @@ export class KnowledgeService {
       return results;
     } catch (error) {
       console.error('Vector search failed, falling back to keyword search:', error);
-      
+
       // 降级方案：使用 LIKE 进行关键词搜索
       return await this.knowledgeRepository
         .createQueryBuilder('knowledge')

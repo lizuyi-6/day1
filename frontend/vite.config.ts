@@ -40,6 +40,18 @@ export default defineConfig({
     fs: {
       strict: false,
       allow: ['..']
+    },
+    headers: {
+      'Cache-Control': 'no-store, no-cache, must-revalidate'
+    }
+  },
+  build: {
+    rollupOptions: {
+      output: {
+        entryFileNames: `assets/[name]-[hash].js`,
+        chunkFileNames: `assets/[name]-[hash].js`,
+        assetFileNames: `assets/[name]-[hash].[ext]`
+      }
     }
   }
 })

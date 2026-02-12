@@ -28,6 +28,9 @@ if (import.meta.env.DEV) {
   setupAPIInterceptor()
   setupGlobalErrorHandler()
   setupConsoleInterceptor()
+
+  // Verify critical modules loaded correctly
+  console.log('[main.ts] Initialization complete - verifying modules...')
 }
 
 // 挂载应用

@@ -21,9 +21,12 @@ export class UploadKnowledgeDto {
  */
 export const ALLOWED_FILE_TYPES = [
   'text/plain',
+  'text/markdown',
+  'text/x-markdown',
   'application/pdf',
   'application/msword',
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/octet-stream', // Fallback for unknown file types
 ];
 
 /**
@@ -34,4 +37,4 @@ export const MAX_FILE_SIZE = 10 * 1024 * 1024;
 /**
  * Allowed file extensions
  */
-export const ALLOWED_EXTENSIONS = ['.txt', '.pdf', '.doc', '.docx'];
+export const ALLOWED_EXTENSIONS = ['.txt', '.md', '.markdown', '.pdf', '.doc', '.docx'];

@@ -4,7 +4,7 @@ import { UploadCloud, FileText, CheckCircle2, AlertCircle, Plus, LayoutGrid, Wor
 import Logo from '@/components/layout/Logo.vue'
 import { RouterLink, useRoute } from 'vue-router'
 import { useScrollAnimations } from '@/composables/useScrollAnimations'
-import { post, get, del } from '@/utils/api'
+import { post, get, del, uploadFile as apiUploadFile } from '@/utils/api'
 import { API_BASE_URL } from '@/config/api'
 
 const route = useRoute()
@@ -12,17 +12,14 @@ const route = useRoute()
 // Initialize scroll animations
 useScrollAnimations()
 
-onMounted(async () => {
-  document.body.classList.add('page-loaded')
-  await loadDocuments()
-})
-
 const fileInput = ref<HTMLInputElement | null>(null)
 const uploading = ref(false)
 const uploadStatus = ref('')
 const searchQuery = ref('')
 const searchResults = ref<any[]>([])
 const isSearching = ref(false)
+const loading = ref(false)
+const error = ref<string | null>(null)
 
 interface Document {
   id: string
@@ -35,6 +32,11 @@ interface Document {
 
 const documents = ref<Document[]>([])
 
+onMounted(async () => {
+  document.body.classList.add('page-loaded')
+  await loadDocuments()
+})
+
 const navLinks = [
   { name: '仪表盘', path: '/dashboard', icon: LayoutGrid },
   { name: '工作流', path: '/workflows', icon: Workflow },
@@ -43,22 +45,29 @@ const navLinks = [
 ]
 
 const loadDocuments = async () => {
-    try {
-        const response = await get(`${API_BASE_URL}/knowledge/documents`)
+  loading.value = true
+  error.value = null
 
-        if (response.success || response.data) {
-            const data = response.data || response
-            documents.value = data.items.map((doc: any) => ({
-                id: doc.firstChunkId,
-                title: doc.fileName,
-                status: 'indexed' as const,
-                createdAt: new Date(doc.uploadedAt).toISOString().split('T')[0],
-                chunkCount: doc.chunkCount
-            }))
-        }
-    } catch (error) {
-        console.error('Failed to load documents', error)
+  try {
+    const response = await get(`${API_BASE_URL}/knowledge/documents`)
+
+    if (response.success && response.data?.items) {
+      documents.value = response.data.items.map((doc: any) => ({
+        id: doc.firstChunkId,
+        title: doc.fileName,
+        status: 'indexed' as const,
+        createdAt: new Date(doc.uploadedAt).toISOString().split('T')[0],
+        chunkCount: doc.chunkCount
+      }))
+    } else {
+      error.value = '加载文档失败'
     }
+  } catch (err) {
+    console.error('[KnowledgeView] Failed to load documents:', err)
+    error.value = '加载文档时发生错误'
+  } finally {
+    loading.value = false
+  }
 }
 
 const triggerUpload = () => {
@@ -81,29 +90,13 @@ const uploadFile = async (file: File) => {
   uploading.value = true
   uploadStatus.value = '上传中...'
 
-  const formData = new FormData()
-  formData.append('file', file)
-  // Optional: add title/description
-  formData.append('title', file.name)
-
   try {
-      const response = await fetch(`${API_BASE_URL}/knowledge/upload`, {
-          method: 'POST',
-          body: formData,
-          // Don't set Content-Type header, let browser set it with boundary
-      })
-      
-      const result = await response.json()
-      
+      const result = await apiUploadFile(`${API_BASE_URL}/knowledge/upload`, file)
+
       if (result.success) {
-           documents.value.unshift({
-              id: result.data.id || Date.now().toString(),
-              title: file.name,
-              status: 'indexed',
-              createdAt: new Date().toISOString().split('T')[0],
-              chunkCount: result.data.chunks?.length || 0
-           })
            uploadStatus.value = '上传成功'
+           // Reload documents list to get accurate data from backend
+           await loadDocuments()
       } else {
            throw new Error(result.error || '上传失败')
       }
@@ -161,15 +154,15 @@ const deleteDocument = async (doc: Document) => {
 
 <template>
   <div class="flex flex-col h-screen bg-background-light dark:bg-background-dark text-charcoal dark:text-sand font-sans overflow-hidden">
-    
+
     <!-- Internal App Header -->
     <header class="h-16 px-6 border-b border-sand/30 dark:border-white/10 bg-white/80 dark:bg-[#1e1711]/80 backdrop-blur-md flex items-center justify-between z-20 shrink-0">
       <div class="flex items-center gap-12">
         <Logo class="scale-90 origin-left" />
         <nav class="hidden md:flex items-center gap-6">
-          <RouterLink 
-            v-for="link in navLinks" 
-            :key="link.path" 
+          <RouterLink
+            v-for="link in navLinks"
+            :key="link.path"
             :to="link.path"
             class="flex items-center gap-2 text-sm font-medium transition-colors duration-200"
             :class="route.path === link.path ? 'text-primary font-bold' : 'text-charcoal/60 dark:text-sand/60 hover:text-charcoal dark:hover:text-sand'"
@@ -207,13 +200,24 @@ const deleteDocument = async (doc: Document) => {
           </button>
         </div>
 
+        <!-- Loading State -->
+        <div v-if="loading" class="flex items-center justify-center py-12">
+          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          <span class="ml-3 text-khaki">加载中...</span>
+        </div>
+
+        <!-- Error State -->
+        <div v-else-if="error" class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-10">
+          <p class="text-red-600 dark:text-red-400 mb-2">{{ error }}</p>
+          <button @click="loadDocuments" class="text-sm text-primary hover:underline font-medium">重试</button>
+        </div>
+
         <!-- Upload Zone (Empty State / Active) -->
-        <div
-            v-if="documents.length === 0"
-            @click="triggerUpload"
-            class="group border-2 border-dashed border-sand dark:border-white/20 rounded-2xl p-16 flex flex-col items-center justify-center text-center hover:border-primary hover:bg-primary/5 cursor-pointer transition-all duration-300 mb-10"
+        <div v-else-if="!loading && documents.length === 0"
+          @click="triggerUpload"
+          class="group border-2 border-dashed border-sand dark:border-white/20 rounded-2xl p-16 flex flex-col items-center justify-center text-center hover:border-primary hover:bg-primary/5 cursor-pointer transition-all duration-300 mb-10"
         >
-            <div class="size-16 rounded-full bg-white dark:bg-white/10 shadow-sm flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+          <div class="size-16 rounded-full bg-white dark:bg-white/10 shadow-sm flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
                 <UploadCloud :size="32" class="text-khaki group-hover:text-primary transition-colors" />
             </div>
             <h3 class="text-lg font-serif font-bold text-charcoal dark:text-white mb-3">点击或拖拽上传</h3>
@@ -223,34 +227,34 @@ const deleteDocument = async (doc: Document) => {
         </div>
 
         <!-- File List -->
-        <div v-else class="bg-white/60 dark:bg-[#2a241e]/60 backdrop-blur-md border border-sand/30 dark:border-white/10 rounded-2xl shadow-sm overflow-hidden animate-scale-in">
-            <div class="px-6 py-4 border-b border-sand/30 dark:border-white/10 bg-sand/20 dark:bg-white/5 flex items-center justify-between">
-                <h3 class="text-xs font-bold text-khaki uppercase tracking-[0.15em]">已索引文档库</h3>
-                <span class="text-xs font-medium text-charcoal/60 dark:text-sand/60">{{ documents.length }} 个文件</span>
+        <div v-else class="bg-white/60 dark:bg-[#2a241e]/60 backdrop-blur-md border border-sand/30 dark:border-white/10 rounded-2xl shadow-sm overflow-hidden">
+          <div class="px-6 py-4 border-b border-sand/30 dark:border-white/10 bg-sand/20 dark:bg-white/5 flex items-center justify-between">
+            <h3 class="text-xs font-bold text-khaki uppercase tracking-[0.15em]">已索引文档库</h3>
+            <span class="text-xs font-medium text-charcoal/60 dark:text-sand/60">{{ documents.length }} 个文件</span>
+          </div>
+          <div class="divide-y divide-sand/30 dark:divide-white/5">
+            <div v-for="(doc, idx) in documents" :key="doc.id" class="px-6 py-4 flex items-center gap-4 hover:bg-white/50 dark:hover:bg-white/5 transition-colors group cursor-default">
+              <div class="size-10 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0 group-hover:bg-primary group-hover:text-white transition-colors">
+                <FileText :size="20" />
+              </div>
+              <div class="flex-1 min-w-0">
+                <h4 class="text-sm font-bold text-charcoal dark:text-white truncate mb-1">{{ doc.title }}</h4>
+                <p class="text-xs text-khaki dark:text-sand/50 font-medium">{{ doc.createdAt }} • {{ doc.chunkCount || 0 }} 块</p>
+              </div>
+              <div class="flex items-center gap-2 shrink-0">
+                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-white dark:bg-white/10 text-primary border border-primary/20 shadow-sm">
+                  <CheckCircle2 :size="12" />
+                  {{ doc.status === 'indexed' ? '已索引' : '处理中' }}
+                </span>
+                <button
+                  @click="deleteDocument(doc)"
+                  class="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                  title="删除文档">
+                  <Trash2 :size="14" />
+                </button>
+              </div>
             </div>
-            <div class="divide-y divide-sand/30 dark:divide-white/5">
-                <div v-for="(doc, idx) in documents" :key="idx" class="px-6 py-4 flex items-center gap-4 hover:bg-white/50 dark:hover:bg-white/5 transition-colors group cursor-default">
-                    <div class="size-10 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0 group-hover:bg-primary group-hover:text-white transition-colors">
-                        <FileText :size="20" />
-                    </div>
-                    <div class="flex-1 min-w-0">
-                        <h4 class="text-sm font-bold text-charcoal dark:text-white truncate mb-1">{{ doc.title }}</h4>
-                        <p class="text-xs text-khaki dark:text-sand/50 font-medium">{{ doc.createdAt }} • {{ doc.chunkCount || 0 }} 块</p>
-                    </div>
-                    <div class="flex items-center gap-2 shrink-0">
-                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-white dark:bg-white/10 text-primary border border-primary/20 shadow-sm">
-                            <CheckCircle2 :size="12" />
-                            {{ doc.status === 'indexed' ? '已索引' : '处理中' }}
-                        </span>
-                        <button
-                          @click="deleteDocument(doc)"
-                          class="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                          title="删除文档">
-                          <Trash2 :size="14" />
-                        </button>
-                    </div>
-                </div>
-            </div>
+          </div>
         </div>
 
         <!-- Search Results -->

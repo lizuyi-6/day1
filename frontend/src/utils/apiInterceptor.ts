@@ -1,5 +1,9 @@
 import { useDevMode } from '@/composables/useDevMode'
 
+// Version tracking to prevent duplicate initialization and enable hot-reload detection
+const INTERCEPTOR_VERSION = '2.0.0';
+const INTERCEPTOR_ID = 'aether-dev-interceptor';
+
 /**
  * 设置全局 API 拦截器
  * 在开发模式下捕获和记录所有 fetch 请求和响应
@@ -7,8 +11,23 @@ import { useDevMode } from '@/composables/useDevMode'
 export function setupAPIInterceptor() {
   const { addNetworkRequest, updateNetworkRequest, addErrorLog } = useDevMode()
 
-  // 保存原始的 fetch 函数
-  const originalFetch = window.fetch
+  // Version check - prevent duplicate initialization
+  if ((window as any).__fetchInterceptorVersion === INTERCEPTOR_VERSION) {
+    console.warn(`[${INTERCEPTOR_ID}] Interceptor v${INTERCEPTOR_VERSION} already active, skipping re-initialization`);
+    return;
+  }
+
+  console.log(`[${INTERCEPTOR_ID}] Initializing interceptor v${INTERCEPTOR_VERSION}...`);
+
+  // 保存原始的 fetch 函数 - 只在第一次初始化时保存
+  const originalFetch = (window as any).__fetchInterceptorVersion
+    ? (window as any).__originalFetch || window.fetch
+    : window.fetch;
+
+  // 保存原始fetch供将来恢复使用
+  (window as any).__originalFetch = originalFetch;
+  (window as any).__fetchInterceptorVersion = INTERCEPTOR_VERSION;
+  (window as any).__fetchInterceptorID = INTERCEPTOR_ID;
 
   // 重写 fetch 函数
   window.fetch = async function (input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
@@ -19,7 +38,24 @@ export function setupAPIInterceptor() {
     // 创建请求 ID
     const requestId = `req-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
 
-    // 记录请求
+    // 处理请求体 - FormData 需要特殊处理
+    let requestBody: any = undefined
+    if (init?.body) {
+      if (init.body instanceof FormData) {
+        // FormData 不能直接 JSON.parse，转换为对象
+        requestBody = '[FormData]'
+      } else if (typeof init.body === 'string') {
+        try {
+          requestBody = JSON.parse(init.body)
+        } catch {
+          requestBody = init.body
+        }
+      } else {
+        requestBody = init.body
+      }
+    }
+
+    // 记录请求（简化：只记录请求ID，不记录详细内容）
     addNetworkRequest({
       id: requestId,
       timestamp: startTime,
@@ -27,7 +63,6 @@ export function setupAPIInterceptor() {
       method: method.toUpperCase(),
       request: {
         headers: init?.headers as Record<string, string>,
-        body: init?.body ? JSON.parse(init.body as string) : undefined,
       },
     })
 
@@ -51,42 +86,37 @@ export function setupAPIInterceptor() {
         }
       }
 
-      // 更新请求日志
+      // 更新请求日志（简化：只记录状态码和耗时）
       updateNetworkRequest(requestId, {
         status: response.status,
         duration,
-        response: {
-          headers: Object.fromEntries(response.headers.entries()),
-          body: responseBody,
-        },
       })
 
-      // 如果是错误响应，记录到错误日志
       if (!response.ok) {
-        let errorMessage = responseBody?.message || `HTTP ${response.status}: ${response.statusText}`;
-        let errorCode = responseBody?.code;
+        let errorMessage = responseBody?.message || responseBody?.error || `HTTP ${response.status}: ${response.statusText}`
+        let errorCode = responseBody?.code
 
         // 标准化错误码处理
         if (errorCode) {
           switch (errorCode) {
             case 'E_WORKFLOW_NOT_FOUND':
-              errorMessage = '找不到该工作流，请检查ID';
-              break;
+              errorMessage = '找不到该工作流，请检查ID'
+              break
             case 'E_WORKFLOW_EXECUTION_FAILED':
-              errorMessage = `工作流执行失败: ${responseBody?.details || '未知错误'}`;
-              break;
+              errorMessage = `工作流执行失败: ${responseBody?.details || '未知错误'}`
+              break
             case 'E_NODE_CONFIGURATION_ERROR':
-              errorMessage = `节点配置错误: ${responseBody?.details}`;
-              break;
+              errorMessage = `节点配置错误: ${responseBody?.details}`
+              break
             case 'E_RATE_LIMIT_EXCEEDED':
-              errorMessage = `请求过于频繁，请${responseBody?.retryAfter ? `等待 ${responseBody.retryAfter} 秒后` : ''}重试`;
-              break;
+              errorMessage = `请求过于频繁，请${responseBody?.retryAfter ? `等待 ${responseBody.retryAfter} 秒后` : ''}重试`
+              break
             case 'E_UNAUTHORIZED_ACCESS':
-              errorMessage = '无权访问此资源';
-              break;
+              errorMessage = '无权访问此资源'
+              break
             case 'E_WORKFLOW_ALREADY_RUNNING':
-              errorMessage = '工作流正在运行中，请勿重复提交';
-              break;
+              errorMessage = '工作流正在运行中，请勿重复提交'
+              break
           }
         }
 
@@ -130,7 +160,17 @@ export function setupAPIInterceptor() {
     }
   }
 
-  console.log('[DevMode] API 拦截器已启用')
+  console.log(`[${INTERCEPTOR_ID}] Interceptor v${INTERCEPTOR_VERSION} initialized successfully`)
+}
+
+/**
+ * Cleanup interceptor when module unloads
+ * Useful for tracking lifecycle during HMR
+ */
+if (import.meta.env.DEV) {
+  window.addEventListener('beforeunload', () => {
+    console.log(`[${INTERCEPTOR_ID}] Interceptor v${INTERCEPTOR_VERSION} shutting down`);
+  });
 }
 
 /**

@@ -95,13 +95,28 @@ export async function apiRequest<T = unknown>(
 
   const { getAuthHeaders } = useAuth()
 
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
+  // 根据请求类型动态设置Content-Type
+  const getDefaultHeaders = () => {
+    const headers: Record<string, string> = {}
+
+    // 如果不是FormData，设置JSON Content-Type
+    if (!(options?.body instanceof FormData)) {
+      headers['Content-Type'] = 'application/json'
+    }
+
+    return headers
   }
+
+  // 初始化 headers 对象（关键修复：必须在 apiRequest 作用域中声明）
+  const headers: Record<string, string> = {}
 
   if (options.headers) {
     Object.assign(headers, options.headers)
   }
+
+  // 使用动态headers，根据请求类型设置正确的Content-Type
+  const dynamicHeaders = getDefaultHeaders()
+  Object.assign(headers, dynamicHeaders)
 
   if (includeAuth) {
     const authHeaders = getAuthHeaders()
@@ -109,11 +124,8 @@ export async function apiRequest<T = unknown>(
   }
 
   const browserId = getBrowserId()
-  console.log('[API] Browser ID:', browserId)
   if (browserId) {
     headers['X-Browser-Id'] = browserId
-  } else {
-    console.warn('Browser ID not found')
   }
 
   // 准备请求配置

@@ -27,8 +27,8 @@
             </div>
             <div class="lg:col-span-7 relative h-[500px] lg:h-[600px] w-full">
               <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] h-[120%] bg-gradient-to-tr from-sand/40 to-primary/10 rounded-full blur-3xl -z-10"></div>
-              <div class="w-full h-full relative rounded-2xl overflow-hidden shadow-2xl bg-white dark:bg-[#2a241e] group border border-white/20">
-                <div class="absolute inset-0 bg-gradient-to-br from-sand/30 via-primary/10 to-white/40 dark:from-sand/20 dark:via-primary/5 dark:to-white/10 opacity-90 transition-transform duration-[20s] ease-linear group-hover:scale-105"></div>
+              <div class="w-full h-full relative rounded-2xl overflow-hidden shadow-2xl bg-transparent group border border-white/20">
+                <img src="/hero-bg.jpg" class="absolute inset-0 w-full h-full object-cover opacity-90 transition-transform duration-[20s] ease-linear group-hover:scale-105">
 
                 <!-- Processing Stream Header -->
                 <div class="absolute top-0 left-0 right-0 p-8 z-20">
