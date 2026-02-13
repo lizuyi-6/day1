@@ -1,6 +1,6 @@
-import axios from 'axios'
+import { get, post, put } from '@/utils/api'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001'
 
 export interface ModelConfig {
   id: string
@@ -40,32 +40,32 @@ class ModelService {
   private baseUrl = `${API_BASE_URL}/models`
 
   async getAll(): Promise<ModelConfig[]> {
-    const response = await axios.get(this.baseUrl)
-    return response.data.data
+    const response = await get(this.baseUrl)
+    return response.data
   }
 
   async getById(id: string): Promise<ModelConfig> {
-    const response = await axios.get(`${this.baseUrl}/${id}`)
-    return response.data.data
+    const response = await get(`${this.baseUrl}/${id}`)
+    return response.data
   }
 
   async create(dto: CreateModelDto): Promise<ModelConfig> {
-    const response = await axios.post(this.baseUrl, dto)
-    return response.data.data
+    const response = await post(`${this.baseUrl}`, dto)
+    return response.data
   }
 
   async update(id: string, dto: UpdateModelDto): Promise<ModelConfig> {
-    const response = await axios.put(`${this.baseUrl}/${id}`, dto)
-    return response.data.data
+    const response = await put(`${this.baseUrl}/${id}`, dto)
+    return response.data
   }
 
   async delete(id: string): Promise<void> {
-    await axios.delete(`${this.baseUrl}/${id}`)
+    await del(`${this.baseUrl}/${id}`)
   }
 
   async testConnection(id: string): Promise<TestResult> {
-    const response = await axios.post(`${this.baseUrl}/${id}/test`)
-    return response.data.data
+    const response = await post(`${this.baseUrl}/${id}/test`)
+    return response.data
   }
 }
 

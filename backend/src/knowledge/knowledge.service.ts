@@ -63,7 +63,7 @@ export class KnowledgeService {
     });
   }
 
-  async processDocument(file: Express.Multer.File, groupId?: string) {
+  async processDocument(file: Express.Multer.File, browserId: string, groupId?: string) {
     let text: string;
 
     const decodedFileName = decodeFileName(file.originalname);
@@ -109,6 +109,7 @@ export class KnowledgeService {
         content: chunk.pageContent,
         embedding: vector,
         groupId: groupId || undefined,
+        browserId, // 用户隔离：关联到 browserId
       });
       entities.push(knowledge);
     }
@@ -118,7 +119,7 @@ export class KnowledgeService {
     return await this.knowledgeRepository.save(entities);
   }
 
-  async search(query: string, topK = 3, groupId?: string) {
+  async search(query: string, browserId: string, topK = 3, groupId?: string) {
     if (!query || typeof query !== 'string') {
       throw new Error('Query must be a non-empty string');
     }
@@ -144,6 +145,7 @@ export class KnowledgeService {
 
       const qb = this.knowledgeRepository
         .createQueryBuilder('knowledge')
+        .where('knowledge.browserId = :browserId', { browserId }) // 用户隔离：只搜索当前用户的文档
         .orderBy('knowledge.embedding <=> :vector', 'ASC')
         .setParameters({ vector: JSON.stringify(queryVector) })
         .limit(safeTopK);
@@ -157,8 +159,10 @@ export class KnowledgeService {
       if (results.length === 0) {
         const fallbackQb = this.knowledgeRepository
           .createQueryBuilder('knowledge')
-          .where('knowledge.content LIKE :query', { query: `%${sanitizedQuery}%` })
-          .orWhere('knowledge.fileName LIKE :query2', {
+          .where('knowledge.browserId = :browserId', { browserId }) // 用户隔离：只搜索当前用户的文档
+          .andWhere('knowledge.content LIKE :query', { query: `%${sanitizedQuery}%` })
+          .orWhere('knowledge.browserId = :browserId', { browserId })
+          .andWhere('knowledge.fileName LIKE :query2', {
             query2: `%${sanitizedQuery}%`,
           })
           .limit(safeTopK);
@@ -176,8 +180,10 @@ export class KnowledgeService {
 
       const fallbackQb = this.knowledgeRepository
         .createQueryBuilder('knowledge')
-        .where('knowledge.content LIKE :query', { query: `%${sanitizedQuery}%` })
-        .orWhere('knowledge.fileName LIKE :query2', {
+        .where('knowledge.browserId = :browserId', { browserId }) // 用户隔离：只搜索当前用户的文档
+        .andWhere('knowledge.content LIKE :query', { query: `%${sanitizedQuery}%` })
+        .orWhere('knowledge.browserId = :browserId2', { browserId2: browserId })
+        .andWhere('knowledge.fileName LIKE :query2', {
           query2: `%${sanitizedQuery}%`,
         })
         .limit(safeTopK);
@@ -190,10 +196,10 @@ export class KnowledgeService {
     }
   }
 
-  async getDocuments(page: number = 1, limit: number = 20, fileName?: string, groupId?: string) {
+  async getDocuments(browserId: string, page: number = 1, limit: number = 20, fileName?: string, groupId?: string) {
     const skip = (page - 1) * limit;
 
-    const where: any = {};
+    const where: any = { browserId }; // 用户隔离：只查询当前用户的文档
     if (fileName) {
       where.fileName = Like(`%${fileName}%`);
     }
@@ -233,8 +239,8 @@ export class KnowledgeService {
     };
   }
 
-  async deleteDocuments(fileName: string, groupId?: string) {
-    const where: any = { fileName };
+  async deleteDocuments(browserId: string, fileName: string, groupId?: string) {
+    const where: any = { browserId, fileName }; // 用户隔离：只能删除自己的文档
     if (groupId) {
       where.groupId = groupId;
     }

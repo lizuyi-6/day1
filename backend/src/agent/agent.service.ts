@@ -6,6 +6,7 @@ import { Parser } from 'expr-eval'; // 安全的表达式解析器
 import { ChatOpenAI } from '@langchain/openai';
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { Observable } from 'rxjs';
+import { NodeRegistry } from '../workflow/nodes/node-registry';
 
 @Injectable()
 export class AgentService {
@@ -16,6 +17,7 @@ export class AgentService {
     private readonly knowledgeService: KnowledgeService,
     private readonly workflowService: WorkflowService,
     private readonly sessionService: SessionService,
+    private readonly nodeRegistry: NodeRegistry,
   ) {
     // 初始化 Qwen LLM
     // Demo Override: Force all LLM nodes to use Qwen
@@ -61,14 +63,9 @@ export class AgentService {
       throw new Error('Workflow not found or empty');
     }
 
-    // 2. Parse Graph (Simple Linear Execution for Demo)
-    // In a real system, we'd do topological sort on nodes/edges.
-    // Here we just find the 'start' node and follow edges.
-
+    // 2. Parse Graph
     const graph: any = workflow.graphData;
-
     let nodes: any[] = [];
-
     let edges: any[] = [];
 
     // Support Vue Flow structure (nodes/edges) OR X6 structure (cells)
@@ -76,10 +73,7 @@ export class AgentService {
       nodes = graph.nodes;
       edges = graph.edges;
     } else if (graph.cells) {
-      // Fallback to X6 structure
-
       nodes = graph.cells.filter((c: any) => c.shape !== 'edge');
-
       edges = graph.cells.filter((c: any) => c.shape === 'edge');
     }
 
@@ -88,103 +82,107 @@ export class AgentService {
       return { response: 'ERROR: No START node found.' };
     }
 
-    let executionResult = `[Workflow Start]\nInput: ${inputMessage}\n`;
+    let executionResult = '';
+    let nodeOutputs: Record<string, Record<string, any>> = {};
+    let lastNodeOutput: Record<string, any> = { input: inputMessage };
 
     // Max steps to prevent infinite loops
     let steps = 0;
-    while (currentNode && steps < 20) {
-      // Vue Flow uses 'label', X6 uses attrs.label.text
-      const label =
-        currentNode.label || currentNode.attrs?.label?.text || 'Node';
-      executionResult += `> Step ${steps + 1}: Executing ${label} (${currentNode.data.type})\n`;
+    while (currentNode && steps < 50) {
+      const nodeType = currentNode.data?.type || 'unknown';
+      const nodeId = currentNode.id;
 
-      let nextEdgeLabel = null; // For branching
+      this.logger.log(`Executing node: ${nodeType} (${nodeId})`);
 
-      // Execute Node Logic
-      if (currentNode.data.type === 'action') {
-        // Mock LLM Action or Script
-        executionResult += `  Action: Processing "${currentNode.data.prompt || 'default'}"...\n`;
-        // In real agent, this would call LLMService
-        executionResult += `  Output: [Success]\n`;
-      } else if (currentNode.data.type === 'condition') {
-        const expression = currentNode.data.expression || 'true';
-        executionResult += `  Condition: Evaluating "${expression}"...\n`;
+      // Execute the node using NodeRegistry
+      if (nodeType === 'start' || nodeType === 'end') {
+        // Start and End nodes just pass through the input
+        executionResult += `[${nodeType.toUpperCase()}]\n`;
+        nodeOutputs[nodeId] = lastNodeOutput;
+      } else {
+        // Get node from registry
+        const node = this.nodeRegistry.getNode(nodeType);
 
-        try {
-          // 使用安全的表达式解析器
-          const parser = new Parser();
+        if (!node) {
+          executionResult += `[ERROR] Unknown node type: ${nodeType}\n`;
+          this.logger.warn(`Unknown node type: ${nodeType}, skipping...`);
+        } else {
+          try {
+            // Merge node data with last node output as inputs
+            const inputs = {
+              ...currentNode.data,
+              ...lastNodeOutput,
+            };
 
-          // 创建安全的上下文
-          const context: Record<string, any> = {
-            input: inputMessage,
-            length: inputMessage?.length || 0,
-          };
+            const context: any = {
+              workflowId,
+              nodeId,
+              variables: currentNode.data || {},
+              nodeOutputs,
+            };
 
-          const result = parser.parse(expression).evaluate(context);
-          executionResult += `  Result: ${result}\n`;
+            this.logger.log(`Executing ${nodeType} node with inputs:`, Object.keys(inputs));
 
-          // If result is true, look for 'true' or 'yes' edge, else 'false' or 'no'
-          // For simplicity in this demo, we assume Condition nodes have two outgoing edges: "YES" and "NO" (labels)
-          nextEdgeLabel = result ? 'YES' : 'NO';
-        } catch (e) {
-          executionResult += `  Error evaluating condition: ${e.message}\n`;
-          nextEdgeLabel = 'NO'; // Fallback
+            const output = await node.execute(inputs, context);
+            nodeOutputs[nodeId] = output;
+            lastNodeOutput = output;
+
+            const outputSummary = JSON.stringify(output)
+              .substring(0, 100)
+              .replace(/\n/g, ' ');
+
+            executionResult += `> ${nodeType.toUpperCase()}: ${outputSummary}...\n`;
+            this.logger.log(`${nodeType} node output:`, output);
+          } catch (error: any) {
+            executionResult += `[ERROR] ${nodeType} failed: ${error.message}\n`;
+            this.logger.error(`Node execution failed:`, error.message);
+            return {
+              response: executionResult,
+              status: 'error',
+              error: error.message,
+            };
+          }
         }
       }
 
       // Find next node
-      // Vue Flow edge: source/target are Ids. X6 edge: source.cell/target.cell are Ids
-
       const outgoingEdges = edges.filter((e: any) => {
         const sourceId = e.source?.cell || e.source;
         return sourceId === currentNode.id;
       });
 
-      let edge;
       if (outgoingEdges.length === 0) {
-        executionResult += `[Workflow End] No outgoing edge.\n`;
-        break;
-      } else if (outgoingEdges.length === 1) {
-        edge = outgoingEdges[0];
-      } else {
-        // Branching logic
-        if (nextEdgeLabel) {
-          // Find edge with matching label (case insensitive)
-          // Vue Flow: label. X6: labels[0].attrs.text.text
-
-          edge = outgoingEdges.find((e: any) => {
-            const edgeText = e.label || e.labels?.[0]?.attrs?.text?.text;
-            return edgeText && edgeText.toUpperCase() === nextEdgeLabel;
-          });
-
-          if (!edge) {
-            // Fallback to first if no label match
-            executionResult += `  Warning: No edge found for branch '${nextEdgeLabel}', taking first path.\n`;
-            edge = outgoingEdges[0];
-          }
-        } else {
-          // No condition branch implied, just take first
-          edge = outgoingEdges[0];
-        }
-      }
-
-      if (!edge) {
-        executionResult += `[Workflow End] Path dead end.\n`;
+        executionResult += `\n[Workflow Complete]\n`;
         break;
       }
 
+      // For simplicity, take the first outgoing edge
+      const edge = outgoingEdges[0];
       const targetId = edge.target?.cell || edge.target;
       currentNode = nodes.find((n: any) => n.id === targetId);
+
+      if (!currentNode) {
+        executionResult += `\n[Workflow End] Next node not found.\n`;
+        break;
+      }
+
       steps++;
     }
 
+    // Try to extract the final meaningful output
+    let finalOutput = executionResult;
+    if (lastNodeOutput.result || lastNodeOutput.response || lastNodeOutput.text || lastNodeOutput.content) {
+      finalOutput = lastNodeOutput.result || lastNodeOutput.response || lastNodeOutput.text || lastNodeOutput.content || executionResult;
+    }
+
     return {
-      response: executionResult,
+      response: finalOutput,
       status: 'completed',
+      nodeOutputs,
     };
   }
 
-  async chat(message: string, sessionId?: string) {
+  async chat(message: string, sessionId?: string, browserId?: string) {
     // 获取或创建 Session
     const session = sessionId
       ? await this.sessionService.getOrCreateSession(sessionId)
@@ -231,7 +229,7 @@ export class AgentService {
       .join('\n');
 
     // RAG: 检索知识库
-    const docs = await this.knowledgeService.search(message, 3);
+    const docs = await this.knowledgeService.search(message, browserId || 'anonymous', 3);
     const context = docs.map((d) => d.content).join('\n\n---\n\n');
 
     if (this.llm) {
@@ -302,7 +300,7 @@ ${historyContext || '（暂无历史记录）'}
   }
 
   // 流式传输方法（返回 Observable）
-  chatStream(message: string, sessionId?: string): Observable<MessageEvent> {
+  chatStream(message: string, sessionId?: string, browserId?: string): Observable<MessageEvent> {
     return new Observable<MessageEvent>((subscriber) => {
       (async () => {
         try {
@@ -319,7 +317,7 @@ ${historyContext || '（暂无历史记录）'}
           );
 
           // RAG 检索
-          const docs = await this.knowledgeService.search(message, 3);
+          const docs = await this.knowledgeService.search(message, browserId || 'anonymous', 3);
           const context = docs.map((d) => d.content).join('\n\n---\n\n');
 
           // 获取历史

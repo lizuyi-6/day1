@@ -5,10 +5,12 @@ import {
   CreateDateColumn,
   ManyToOne,
   JoinColumn,
+  Index,
 } from 'typeorm';
 import { DocumentGroup } from './document-group.entity';
 
 @Entity()
+@Index(['browserId']) // 为用户隔离添加索引，提高查询性能
 export class Knowledge {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -25,6 +27,9 @@ export class Knowledge {
 
   @Column({ nullable: true })
   groupId?: string;
+
+  @Column({ nullable: true })
+  browserId?: string; // 用户隔离字段：关联到 browserId
 
   @ManyToOne(() => DocumentGroup, (group) => group.documents, { nullable: true, onDelete: 'CASCADE' })
   @JoinColumn({ name: 'groupId' })

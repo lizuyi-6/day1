@@ -44,3 +44,17 @@ build/
 # Temporary files
 nul
 verify-workflow.js
+
+# Database files
+backend/data/*.db
+backend/data/*.db-shm
+backend/data/*.db-wal
+
+# Claude session files
+.trae/
+
+# Test scripts
+*.test.js
+validate-*.js
+replace_*.py
+replace_*.ps1

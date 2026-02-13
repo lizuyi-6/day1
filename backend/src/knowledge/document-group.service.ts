@@ -15,43 +15,55 @@ export class DocumentGroupService {
     private knowledgeRepository: Repository<Knowledge>,
   ) {}
 
-  async create(name: string, description?: string): Promise<DocumentGroup> {
-    const group = this.groupRepository.create({ name, description });
+  async create(name: string, browserId: string, description?: string): Promise<DocumentGroup> {
+    const group = this.groupRepository.create({ name, description, browserId });
     return this.groupRepository.save(group);
   }
 
-  async findAll(): Promise<(DocumentGroup & { documentCount: number; chunkCount: number })[]> {
+  async findAll(browserId: string): Promise<(DocumentGroup & { documentCount: number; chunkCount: number })[]> {
     const groups = await this.groupRepository.find({
+      where: { browserId }, // 用户隔离：只返回当前用户的文档组
       order: { createdAt: 'DESC' },
     });
 
     const groupsWithStats = await Promise.all(
       groups.map(async (group) => {
         const documents = await this.knowledgeRepository.find({
-          where: { groupId: group.id },
+          where: { groupId: group.id, browserId }, // 添加 browserId 过滤，只统计当前用户的文档
         });
+
+        this.logger.log(`[findAll] Group "${group.name}" (${group.id}): found ${documents.length} documents`);
+        if (documents.length > 0) {
+          this.logger.log(`[findAll] Sample documents: ${JSON.stringify(documents.map(d => ({ id: d.id, fileName: d.fileName, groupId: d.groupId, browserId: d.browserId })))}`);
+        }
 
         const uniqueFiles = new Set(documents.map((d) => d.fileName));
 
-        return {
+        const result = {
           ...group,
           documentCount: uniqueFiles.size,
           chunkCount: documents.length,
         };
+
+        this.logger.log(`[findAll] Group "${group.name}" result: documentCount=${result.documentCount}, chunkCount=${result.chunkCount}`);
+
+        return result;
       }),
     );
 
     return groupsWithStats;
   }
 
-  async findOne(id: string): Promise<DocumentGroup & { documentCount: number; chunkCount: number }> {
-    const group = await this.groupRepository.findOne({ where: { id } });
+  async findOne(id: string, browserId: string): Promise<DocumentGroup & { documentCount: number; chunkCount: number }> {
+    const group = await this.groupRepository.findOne({
+      where: { id, browserId } // 用户隔离：只能访问自己的文档组
+    });
     if (!group) {
       throw new NotFoundException(`Document group with ID "${id}" not found`);
     }
 
     const documents = await this.knowledgeRepository.find({
-      where: { groupId: id },
+      where: { groupId: id, browserId }, // 添加 browserId 过滤，只统计当前用户的文档
     });
 
     const uniqueFiles = new Set(documents.map((d) => d.fileName));
@@ -63,8 +75,10 @@ export class DocumentGroupService {
     };
   }
 
-  async update(id: string, name?: string, description?: string): Promise<DocumentGroup> {
-    const group = await this.groupRepository.findOne({ where: { id } });
+  async update(id: string, browserId: string, name?: string, description?: string): Promise<DocumentGroup> {
+    const group = await this.groupRepository.findOne({
+      where: { id, browserId } // 用户隔离：只能更新自己的文档组
+    });
     if (!group) {
       throw new NotFoundException(`Document group with ID "${id}" not found`);
     }
@@ -79,14 +93,16 @@ export class DocumentGroupService {
     return this.groupRepository.save(group);
   }
 
-  async remove(id: string): Promise<{ id: string; deletedChunks: number }> {
-    const group = await this.groupRepository.findOne({ where: { id } });
+  async remove(id: string, browserId: string): Promise<{ id: string; deletedChunks: number }> {
+    const group = await this.groupRepository.findOne({
+      where: { id, browserId } // 用户隔离：只能删除自己的文档组
+    });
     if (!group) {
       throw new NotFoundException(`Document group with ID "${id}" not found`);
     }
 
     const documents = await this.knowledgeRepository.find({
-      where: { groupId: id },
+      where: { groupId: id, browserId }, // 添加 browserId 过滤，只删除当前用户的文档
     });
 
     if (documents.length > 0) {
@@ -105,6 +121,7 @@ export class DocumentGroupService {
 
   async getDocuments(
     groupId: string,
+    browserId: string,
     page: number = 1,
     limit: number = 20,
   ): Promise<{
@@ -117,7 +134,7 @@ export class DocumentGroupService {
     const skip = (page - 1) * limit;
 
     const [documents, total] = await this.knowledgeRepository.findAndCount({
-      where: { groupId },
+      where: { groupId, browserId }, // 用户隔离：只能访问自己组的文档
       order: { createdAt: 'DESC' },
       skip,
       take: limit,

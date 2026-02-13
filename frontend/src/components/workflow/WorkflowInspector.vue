@@ -5,6 +5,7 @@ import type { Node } from '@vue-flow/core'
 import type { Variable } from '@/types/variable'
 import { useVueFlow } from '@vue-flow/core'
 import { workflowService } from '@/services/workflowService'
+import { knowledgeService } from '@/services/knowledgeService'
 
 const selectedNode = defineModel<Node | null>('selectedNode')
 const activeTab = ref('config') // config | inputs | outputs | json
@@ -152,14 +153,11 @@ const testKnowledgeNode = async () => {
 
   try {
     const query = selectedNode.value.data.query || '测试查询'
+    const groupId = selectedNode.value.data.groupId
+    const topK = selectedNode.value.data.topK || 3
 
-    const response = await get(`${API_BASE_URL}/knowledge/search`, {
-      params: { q: query }
-    })
-
-    if (response.success || response.data) {
-      testResult.value = response.data || []
-    }
+    const results = await knowledgeService.search(query, groupId, topK)
+    testResult.value = results
   } catch (error: any) {
     testError.value = error.message || '测试失败'
   } finally {

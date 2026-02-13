@@ -46,7 +46,8 @@ export class KnowledgeNode extends BaseNode {
 
     try {
       // 调用知识库服务进行向量搜索
-      const results = await this.knowledgeService.search(query, safeTopK);
+      // TODO: Get browserId from execution context when workflow system supports it
+      const results = await this.knowledgeService.search(query, 'workflow-anonymous', safeTopK);
 
       this.logger.log(`Found ${results.length} relevant documents`);
 

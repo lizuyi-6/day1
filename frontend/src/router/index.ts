@@ -50,6 +50,12 @@ const router = createRouter({
     {
       path: '/workshop',
       name: 'workshop',
+      component: () => import('../views/WorkshopView.vue'),
+      meta: { transition: 'fade-scale' }
+    },
+    {
+      path: '/themes',
+      name: 'themes',
       component: () => import('../views/ThemeWorkshop.vue'),
       meta: { transition: 'fade-scale' }
     },

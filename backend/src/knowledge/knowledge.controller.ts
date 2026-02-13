@@ -18,6 +18,7 @@ import { KnowledgeService } from './knowledge.service';
 import { DocumentGroupService } from './document-group.service';
 import { HybridAuthGuard } from '../auth/hybrid-auth.guard';
 import { User } from '../auth/jwt-auth.decorator';
+import { BrowserId } from '../common/decorators/browser-id.decorator';
 import { ALLOWED_FILE_TYPES, MAX_FILE_SIZE, ALLOWED_EXTENSIONS } from './dto/upload.dto';
 import { CreateDocumentGroupDto, UpdateDocumentGroupDto } from './dto/document-group.dto';
 import * as path from 'path';
@@ -45,32 +46,32 @@ export class KnowledgeController {
   // ==================== 文档组 API ====================
 
   @Post('groups')
-  async createGroup(@Body() dto: CreateDocumentGroupDto, @User() user: any) {
-    return this.documentGroupService.create(dto.name, dto.description);
+  async createGroup(@Body() dto: CreateDocumentGroupDto, @BrowserId() browserId: string) {
+    return this.documentGroupService.create(dto.name, browserId, dto.description);
   }
 
   @Get('groups')
-  async getAllGroups(@User() user: any) {
-    return this.documentGroupService.findAll();
+  async getAllGroups(@BrowserId() browserId: string) {
+    return this.documentGroupService.findAll(browserId);
   }
 
   @Get('groups/:id')
-  async getGroup(@Param('id') id: string, @User() user: any) {
-    return this.documentGroupService.findOne(id);
+  async getGroup(@Param('id') id: string, @BrowserId() browserId: string) {
+    return this.documentGroupService.findOne(id, browserId);
   }
 
   @Put('groups/:id')
   async updateGroup(
     @Param('id') id: string,
     @Body() dto: UpdateDocumentGroupDto,
-    @User() user: any,
+    @BrowserId() browserId: string,
   ) {
-    return this.documentGroupService.update(id, dto.name, dto.description);
+    return this.documentGroupService.update(id, browserId, dto.name, dto.description);
   }
 
   @Delete('groups/:id')
-  async deleteGroup(@Param('id') id: string, @User() user: any) {
-    return this.documentGroupService.remove(id);
+  async deleteGroup(@Param('id') id: string, @BrowserId() browserId: string) {
+    return this.documentGroupService.remove(id, browserId);
   }
 
   @Get('groups/:id/documents')
@@ -78,9 +79,9 @@ export class KnowledgeController {
     @Param('id') id: string,
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 20,
-    @User() user: any,
+    @BrowserId() browserId: string,
   ) {
-    return this.documentGroupService.getDocuments(id, page, limit);
+    return this.documentGroupService.getDocuments(id, browserId, page, limit);
   }
 
   // ==================== 文档 API ====================
@@ -96,7 +97,7 @@ export class KnowledgeController {
   async uploadFile(
     @UploadedFile() file: Express.Multer.File,
     @Query('groupId') groupId: string,
-    @User() user: any,
+    @BrowserId() browserId: string,
   ) {
     if (!file) {
       throw new BadRequestException('File is required');
@@ -116,7 +117,7 @@ export class KnowledgeController {
       originalname: decodedFileName,
     };
 
-    return this.knowledgeService.processDocument(fixedFile as Express.Multer.File, groupId);
+    return this.knowledgeService.processDocument(fixedFile as Express.Multer.File, browserId, groupId);
   }
 
   @Get('search')
@@ -124,9 +125,9 @@ export class KnowledgeController {
     @Query('q') query: string,
     @Query('groupId') groupId: string,
     @Query('topK') topK: number,
-    @User() user: any,
+    @BrowserId() browserId: string,
   ) {
-    return this.knowledgeService.search(query, topK || 3, groupId);
+    return this.knowledgeService.search(query, browserId, topK || 3, groupId);
   }
 
   @Get('documents')
@@ -134,17 +135,17 @@ export class KnowledgeController {
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 20,
     @Query('groupId') groupId: string,
-    @User() user: any,
+    @BrowserId() browserId: string,
   ) {
-    return this.knowledgeService.getDocuments(page, limit, undefined, groupId);
+    return this.knowledgeService.getDocuments(browserId, page, limit, undefined, groupId);
   }
 
   @Delete('documents/:fileName')
   async deleteDocuments(
     @Param('fileName') fileName: string,
     @Query('groupId') groupId: string,
-    @User() user: any,
+    @BrowserId() browserId: string,
   ) {
-    return this.knowledgeService.deleteDocuments(fileName, groupId);
+    return this.knowledgeService.deleteDocuments(browserId, fileName, groupId);
   }
 }

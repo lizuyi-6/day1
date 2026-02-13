@@ -33,12 +33,15 @@ export class BrowserIdMiddleware implements NestMiddleware {
     req.browserId = browserId;
 
     if (!req.cookies?.browser_id) {
+      // 开发环境强制使用 localhost，防止 Cookie 跨浏览器共享
+      const isDev = process.env.NODE_ENV !== 'production';
+
       res.cookie('browser_id', browserId, {
         httpOnly: true,
-        secure: false, // Allow HTTP for local dev
-        sameSite: 'lax', // Relax for cross-port (3000 vs 5173)
+        secure: !isDev, // 生产环境使用 HTTPS
+        sameSite: isDev ? 'strict' : 'none', // 开发环境严格同站，生产环境允许跨站点
         maxAge: 365 * 24 * 60 * 60 * 1000,
-        domain: process.env.COOKIE_DOMAIN || undefined,
+        domain: isDev ? 'localhost' : (process.env.COOKIE_DOMAIN || undefined),
       });
       this.logger.debug(`Set browser_id cookie: ${browserId}`);
     }

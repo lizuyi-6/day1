@@ -110,8 +110,20 @@ const uploadFile = async (file: File) => {
   uploadStatus.value = '上传中...'
 
   try {
-    const groupId = selectedGroup.value?.id
-    const result = await knowledgeService.uploadDocument(file, groupId)
+    // 如果没有选择文档组，自动使用默认文档组
+    let groupId = selectedGroup.value?.id
+    if (!groupId) {
+      // 查找默认文档组
+      const defaultGroup = groups.value.find(g => g.name === '默认文档组')
+      if (defaultGroup) {
+        groupId = defaultGroup.id
+        if (!selectedGroup.value) {
+          selectGroup(defaultGroup)
+        }
+      }
+    }
+
+    const result = await knowledgeService.uploadDocument(file, groupId || null)
 
     if (result.success) {
       uploadStatus.value = '上传成功'
@@ -416,7 +428,7 @@ const deleteDocument = async (doc: Document) => {
             </div>
             <h3 class="text-lg font-serif font-bold text-charcoal dark:text-white mb-3">点击或拖拽上传</h3>
             <p class="text-khaki/80 dark:text-sand/60 text-sm max-w-sm leading-relaxed">
-              支持 PDF, Markdown, TXT 格式。<br/>系统将自动进行切片和向量化处理。
+              {{ isAllDocuments ? '请先选择一个文档组' : '支持 PDF, Markdown, TXT 格式' }}。<br/>系统将自动进行切片和向量化处理。
             </p>
           </div>
 

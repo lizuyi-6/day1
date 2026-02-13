@@ -3,6 +3,7 @@ import { AgentService } from './agent.service';
 import { Observable } from 'rxjs';
 import { HybridAuthGuard } from '../auth/hybrid-auth.guard';
 import { User } from '../auth/jwt-auth.decorator';
+import { BrowserId } from '../common/decorators/browser-id.decorator';
 import { ChatDto } from './dto/chat.dto';
 import { ChatStreamDto } from './dto/chat-stream.dto';
 
@@ -12,18 +13,20 @@ export class AgentController {
   constructor(private readonly agentService: AgentService) {}
 
   @Post('chat')
-  async chat(@Body() chatDto: ChatDto, @User() user: any) {
-    return await this.agentService.chat(chatDto.message, chatDto.sessionId);
+  async chat(@Body() chatDto: ChatDto, @User() user: any, @BrowserId() browserId: string) {
+    return await this.agentService.chat(chatDto.message, chatDto.sessionId, browserId);
   }
 
   @Post('chat/stream')
   chatStream(
     @Body() chatStreamDto: ChatStreamDto,
     @User() user: any,
+    @BrowserId() browserId: string,
   ): Observable<MessageEvent> {
     return this.agentService.chatStream(
       chatStreamDto.message,
       chatStreamDto.sessionId,
+      browserId,
     );
   }
 

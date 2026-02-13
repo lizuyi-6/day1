@@ -1089,6 +1089,7 @@ onUnmounted(() => {
   window.removeEventListener('click', hideContextMenu)
   window.removeEventListener('resize', handleResize)
 })
+// 暴露全局方法，用于测试目的onMounted(() => {  window.addKnowledgeNode = () => {    console.log("🎯 直接添加知识节点到工作区")    const newNode = {      id: `knowledge-${Date.now()}`,      type: "knowledge",      position: { x: 300, y: 200 },      data: {        label: "知识库",        inputs: [          { id: "query", name: "查询内容", type: "string", value: "测试查询", required: true },          { id: "topK", name: "返回数量", type: "number", value: 3 }        ],        outputs: [          { id: "results", name: "查询结果", type: "array" }        ]      }    }    addNodes([newNode])    saveWorkflowEditHistory()    console.log("✅ 知识节点添加成功:", newNode)    return newNode  }})
 
 // Initialize when Vue Flow is ready
 onPaneReady(({ fitView }) => {
