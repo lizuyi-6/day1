@@ -3,7 +3,7 @@
     <!-- Overlay to close menu when clicking outside -->
     <div v-if="isOpen" class="fixed inset-0 z-40" @click="isOpen = false"></div>
 
-    <button 
+    <button
       @click="isOpen = !isOpen"
       class="relative z-50 flex items-center justify-center p-2 rounded-full text-charcoal bg-sand/20 hover:bg-primary hover:text-white transition-all shadow-sm"
       :class="{ 'bg-primary text-white': isOpen }"
@@ -11,7 +11,7 @@
     >
       <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a7 7 0 1 0 10 10"/></svg>
     </button>
-    
+
     <!-- Dropdown Menu -->
     <transition
       enter-active-class="transition duration-200 ease-out"
@@ -21,8 +21,10 @@
       leave-from-class="transform scale-100 opacity-100 translate-y-0"
       leave-to-class="transform scale-95 opacity-0 translate-y-2"
     >
-      <div v-if="isOpen" class="absolute left-0 bottom-full mb-4 w-64 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-sand/20 overflow-hidden origin-bottom-left z-50">
-        <div class="p-1 space-y-1">
+      <div v-if="isOpen" class="absolute left-0 bottom-full mb-4 w-72 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-sand/20 overflow-hidden origin-bottom-left z-50">
+        <!-- Preset Themes -->
+        <div class="p-2 space-y-1 border-b border-gray-200">
+          <p class="text-xs font-bold text-gray-500 px-2 mb-2">预设主题</p>
           <button
             v-for="theme in availableThemes"
             :key="theme.id"
@@ -34,9 +36,9 @@
               <div class="w-[20%] h-full" :style="{ backgroundColor: theme.colors['--color-primary'] }"></div>
               <div class="w-[80%] h-full" :style="{ backgroundColor: theme.colors['--bg-app'] }"></div>
             </div>
-            
+
             <!-- Text Content -->
-            <span 
+            <span
               class="relative z-10 ml-[20%] pl-3"
               :style="{ color: theme.colors['--text-main'] }"
             >
@@ -49,17 +51,92 @@
             </div>
           </button>
         </div>
+
+        <!-- Custom Theme Section -->
+        <div class="p-3 space-y-3">
+          <p class="text-xs font-bold text-gray-500">自定义双色主题</p>
+
+          <!-- Primary Color Picker -->
+          <div class="space-y-2">
+            <label class="text-xs text-gray-600 flex items-center gap-2">
+              <span class="w-4 h-4 rounded-full" :style="{ background: primaryColor }"></span>
+              主色调
+            </label>
+            <div class="flex gap-2 items-center">
+              <input
+                type="color"
+                v-model="primaryColor"
+                class="w-10 h-10 rounded-lg cursor-pointer border-2 border-gray-200 hover:border-primary transition-colors"
+              />
+              <input
+                type="text"
+                v-model="primaryColor"
+                class="flex-1 px-3 py-2 text-xs font-mono border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20"
+                placeholder="#6366F1"
+              />
+            </div>
+          </div>
+
+          <!-- Secondary Color Picker -->
+          <div class="space-y-2">
+            <label class="text-xs text-gray-600 flex items-center gap-2">
+              <span class="w-4 h-4 rounded-full bg-gray-300"></span>
+              背景色
+            </label>
+            <div class="flex gap-2 items-center">
+              <input
+                type="color"
+                v-model="secondaryColor"
+                class="w-10 h-10 rounded-lg cursor-pointer border-2 border-gray-200 hover:border-primary transition-colors"
+              />
+              <input
+                type="text"
+                v-model="secondaryColor"
+                class="flex-1 px-3 py-2 text-xs font-mono border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20"
+                placeholder="#F3F4F6"
+              />
+            </div>
+          </div>
+
+          <!-- Preview & Apply Button -->
+          <div class="flex gap-2">
+            <button
+              @click="applyCustomTheme"
+              class="flex-1 h-8 rounded-lg overflow-hidden flex items-center shadow-sm ring-1 ring-black/5 hover:ring-primary/50 transition-all relative"
+            >
+              <div class="absolute inset-0 flex">
+                <div class="w-[20%] h-full" :style="{ backgroundColor: primaryColor }"></div>
+                <div class="w-[80%] h-full" :style="{ backgroundColor: secondaryColor }"></div>
+              </div>
+              <span class="relative z-10 w-full text-center text-xs font-bold text-gray-800">
+                应用自定义
+              </span>
+            </button>
+          </div>
+        </div>
       </div>
     </transition>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useTheme } from '../composables/useTheme'
 
-const { availableThemes, currentThemeId, applyTheme } = useTheme()
+const { availableThemes, currentThemeId, applyTheme, saveCustomTheme, customThemeColors } = useTheme()
 const isOpen = ref(false)
+
+// Custom theme colors
+const primaryColor = ref('#6366F1')
+const secondaryColor = ref('#F3F4F6')
+
+// Load saved custom theme colors
+onMounted(() => {
+  if (customThemeColors.value) {
+    primaryColor.value = customThemeColors.value.primary
+    secondaryColor.value = customThemeColors.value.secondary
+  }
+})
 
 const handleThemeSelect = async (event: MouseEvent, themeId: string) => {
   if (themeId === currentThemeId.value) {
@@ -74,7 +151,7 @@ const handleThemeSelect = async (event: MouseEvent, themeId: string) => {
     return
   }
 
-  // Get click coordinates for the circular reveal
+  // Get click coordinates for  circular reveal
   const x = event.clientX
   const y = event.clientY
   const endRadius = Math.hypot(
@@ -82,16 +159,16 @@ const handleThemeSelect = async (event: MouseEvent, themeId: string) => {
     Math.max(y, innerHeight - y)
   )
 
-  // Start the View Transition
+  // Start  View Transition
   const transition = document.startViewTransition(() => {
     applyTheme(themeId)
     isOpen.value = false
   })
 
-  // Wait for the pseudo-elements to be created
+  // Wait for  pseudo-elements to be created
   await transition.ready
 
-  // Animate the circle clip path
+  // Animate  circle clip path
   document.documentElement.animate(
     {
       clipPath: [
@@ -107,6 +184,11 @@ const handleThemeSelect = async (event: MouseEvent, themeId: string) => {
     }
   )
 }
+
+const applyCustomTheme = () => {
+  saveCustomTheme(primaryColor.value, secondaryColor.value)
+  isOpen.value = false
+}
 </script>
 
 <style>
@@ -117,7 +199,7 @@ const handleThemeSelect = async (event: MouseEvent, themeId: string) => {
   mix-blend-mode: normal;
 }
 
-/* Ensure the new view is on top during the animation */
+/* Ensure  new view is on top during  animation */
 ::view-transition-new(root) {
   z-index: 9999;
 }
