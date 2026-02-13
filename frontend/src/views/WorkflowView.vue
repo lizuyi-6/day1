@@ -1441,9 +1441,11 @@ onConnect((params) => {
     sourceOutputs.forEach((output, index) => {
       if (index < targetInputs.length) {
         const targetInput = targetInputs[index]
-        targetNode.data.variableMappings[targetInput.name] = {
-          sourceNodeId: sourceNode.id,
-          sourceVariableName: output.name
+        if (targetInput && output && output.name) {
+          targetNode.data.variableMappings[targetInput.name] = {
+            sourceNodeId: sourceNode.id,
+            sourceVariableName: output.name
+          }
         }
       }
     })
