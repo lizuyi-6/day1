@@ -133,10 +133,11 @@ const secondaryColor = ref('#F3F4F6')
 // All themes including custom theme
 const allThemes = computed(() => {
   const themes = [...availableThemes]
-  if (getCustomTheme.value) {
-    themes.push(getCustomTheme.value)
+  const customTheme = getCustomTheme.value
+  if (customTheme && customTheme.id && customTheme.name) {
+    themes.push(customTheme)
   }
-  return themes.filter(theme => theme && theme.id && theme.name)
+  return themes.filter(theme => theme && typeof theme === 'object' && 'id' in theme && 'name' in theme && 'colors' in theme)
 })
 
 // Load saved custom theme colors
