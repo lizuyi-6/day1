@@ -1420,15 +1420,305 @@ const initializeExampleWorkflow = () => {
 }
 
 // 连接处理
-onConnect((params) => {
-  saveWorkflowEditHistory()
-  addEdges([params])
-
-  // 自动映射变量：将上游节点的输出变量映射到下游节点的输入变量
+    // 自动映射变量：将上游节点的输出变量映射到下游节点的输入变量
   const sourceNode = nodes.value.find(n => n.id === params.source)
   const targetNode = nodes.value.find(n => n.id === params.target)
 
   if (sourceNode && targetNode) {
+    const sourceOutputs = sourceNode.data.outputs || []
+    const targetInputs = targetNode.data.inputs || []
+
+    // 初始化 variableMappings
+    if (!targetNode.data.variableMappings) {
+      targetNode.data.variableMappings = {}
+    }
+
+    // 按顺序映射变量
+    sourceOutputs.forEach((output, index) => {
+      if (index < targetInputs.length) {
+        const targetInput = targetInputs[index]
+        const targetVariableMappings = targetNode.data.variableMappings
+
+        // 确保对象存在后再访问属性
+        if (targetInput && targetVariableMappings && output) {
+          targetVariableMappings[targetInput.name] = {
+            sourceNodeId: sourceNode.id,
+            sourceVariableName: output.name
+          }
+        }
+      }
+    }
+  }
+onConnect((params) => {
+    // 自动映射变量：将上游节点的输出变量映射到下游节点的输入变量
+  const sourceNode = nodes.value.find(n => n.id === params.source)
+  const targetNode = nodes.value.find(n => n.id === params.target)
+
+  if (sourceNode && targetNode) {
+    const sourceOutputs = sourceNode.data.outputs || []
+    const targetInputs = targetNode.data.inputs || []
+
+    // 初始化 variableMappings
+    if (!targetNode.data.variableMappings) {
+      targetNode.data.variableMappings = {}
+    }
+
+    // 按顺序映射变量
+    sourceOutputs.forEach((output, index) => {
+      if (index < targetInputs.length) {
+        const targetInput = targetInputs[index]
+        const targetVariableMappings = targetNode.data.variableMappings
+
+        // 确保对象存在后再访问属性
+        if (targetInput && targetVariableMappings && output) {
+          targetVariableMappings[targetInput.name] = {
+            sourceNodeId: sourceNode.id,
+            sourceVariableName: output.name
+          }
+        }
+      }
+    }
+  }
+  saveWorkflowEditHistory()
+    // 自动映射变量：将上游节点的输出变量映射到下游节点的输入变量
+  const sourceNode = nodes.value.find(n => n.id === params.source)
+  const targetNode = nodes.value.find(n => n.id === params.target)
+
+  if (sourceNode && targetNode) {
+    const sourceOutputs = sourceNode.data.outputs || []
+    const targetInputs = targetNode.data.inputs || []
+
+    // 初始化 variableMappings
+    if (!targetNode.data.variableMappings) {
+      targetNode.data.variableMappings = {}
+    }
+
+    // 按顺序映射变量
+    sourceOutputs.forEach((output, index) => {
+      if (index < targetInputs.length) {
+        const targetInput = targetInputs[index]
+        const targetVariableMappings = targetNode.data.variableMappings
+
+        // 确保对象存在后再访问属性
+        if (targetInput && targetVariableMappings && output) {
+          targetVariableMappings[targetInput.name] = {
+            sourceNodeId: sourceNode.id,
+            sourceVariableName: output.name
+          }
+        }
+      }
+    }
+  }
+  addEdges([params])
+    // 自动映射变量：将上游节点的输出变量映射到下游节点的输入变量
+  const sourceNode = nodes.value.find(n => n.id === params.source)
+  const targetNode = nodes.value.find(n => n.id === params.target)
+
+  if (sourceNode && targetNode) {
+    const sourceOutputs = sourceNode.data.outputs || []
+    const targetInputs = targetNode.data.inputs || []
+
+    // 初始化 variableMappings
+    if (!targetNode.data.variableMappings) {
+      targetNode.data.variableMappings = {}
+    }
+
+    // 按顺序映射变量
+    sourceOutputs.forEach((output, index) => {
+      if (index < targetInputs.length) {
+        const targetInput = targetInputs[index]
+        const targetVariableMappings = targetNode.data.variableMappings
+
+        // 确保对象存在后再访问属性
+        if (targetInput && targetVariableMappings && output) {
+          targetVariableMappings[targetInput.name] = {
+            sourceNodeId: sourceNode.id,
+            sourceVariableName: output.name
+          }
+        }
+      }
+    }
+  }
+
+    // 自动映射变量：将上游节点的输出变量映射到下游节点的输入变量
+  const sourceNode = nodes.value.find(n => n.id === params.source)
+  const targetNode = nodes.value.find(n => n.id === params.target)
+
+  if (sourceNode && targetNode) {
+    const sourceOutputs = sourceNode.data.outputs || []
+    const targetInputs = targetNode.data.inputs || []
+
+    // 初始化 variableMappings
+    if (!targetNode.data.variableMappings) {
+      targetNode.data.variableMappings = {}
+    }
+
+    // 按顺序映射变量
+    sourceOutputs.forEach((output, index) => {
+      if (index < targetInputs.length) {
+        const targetInput = targetInputs[index]
+        const targetVariableMappings = targetNode.data.variableMappings
+
+        // 确保对象存在后再访问属性
+        if (targetInput && targetVariableMappings && output) {
+          targetVariableMappings[targetInput.name] = {
+            sourceNodeId: sourceNode.id,
+            sourceVariableName: output.name
+          }
+        }
+      }
+    }
+  }
+  // 自动映射变量：将上游节点的输出变量映射到下游节点的输入变量
+    // 自动映射变量：将上游节点的输出变量映射到下游节点的输入变量
+  const sourceNode = nodes.value.find(n => n.id === params.source)
+  const targetNode = nodes.value.find(n => n.id === params.target)
+
+  if (sourceNode && targetNode) {
+    const sourceOutputs = sourceNode.data.outputs || []
+    const targetInputs = targetNode.data.inputs || []
+
+    // 初始化 variableMappings
+    if (!targetNode.data.variableMappings) {
+      targetNode.data.variableMappings = {}
+    }
+
+    // 按顺序映射变量
+    sourceOutputs.forEach((output, index) => {
+      if (index < targetInputs.length) {
+        const targetInput = targetInputs[index]
+        const targetVariableMappings = targetNode.data.variableMappings
+
+        // 确保对象存在后再访问属性
+        if (targetInput && targetVariableMappings && output) {
+          targetVariableMappings[targetInput.name] = {
+            sourceNodeId: sourceNode.id,
+            sourceVariableName: output.name
+          }
+        }
+      }
+    }
+  }
+  const sourceNode = nodes.value.find(n => n.id === params.source)
+    // 自动映射变量：将上游节点的输出变量映射到下游节点的输入变量
+  const sourceNode = nodes.value.find(n => n.id === params.source)
+  const targetNode = nodes.value.find(n => n.id === params.target)
+
+  if (sourceNode && targetNode) {
+    const sourceOutputs = sourceNode.data.outputs || []
+    const targetInputs = targetNode.data.inputs || []
+
+    // 初始化 variableMappings
+    if (!targetNode.data.variableMappings) {
+      targetNode.data.variableMappings = {}
+    }
+
+    // 按顺序映射变量
+    sourceOutputs.forEach((output, index) => {
+      if (index < targetInputs.length) {
+        const targetInput = targetInputs[index]
+        const targetVariableMappings = targetNode.data.variableMappings
+
+        // 确保对象存在后再访问属性
+        if (targetInput && targetVariableMappings && output) {
+          targetVariableMappings[targetInput.name] = {
+            sourceNodeId: sourceNode.id,
+            sourceVariableName: output.name
+          }
+        }
+      }
+    }
+  }
+  const targetNode = nodes.value.find(n => n.id === params.target)
+    // 自动映射变量：将上游节点的输出变量映射到下游节点的输入变量
+  const sourceNode = nodes.value.find(n => n.id === params.source)
+  const targetNode = nodes.value.find(n => n.id === params.target)
+
+  if (sourceNode && targetNode) {
+    const sourceOutputs = sourceNode.data.outputs || []
+    const targetInputs = targetNode.data.inputs || []
+
+    // 初始化 variableMappings
+    if (!targetNode.data.variableMappings) {
+      targetNode.data.variableMappings = {}
+    }
+
+    // 按顺序映射变量
+    sourceOutputs.forEach((output, index) => {
+      if (index < targetInputs.length) {
+        const targetInput = targetInputs[index]
+        const targetVariableMappings = targetNode.data.variableMappings
+
+        // 确保对象存在后再访问属性
+        if (targetInput && targetVariableMappings && output) {
+          targetVariableMappings[targetInput.name] = {
+            sourceNodeId: sourceNode.id,
+            sourceVariableName: output.name
+          }
+        }
+      }
+    }
+  }
+
+    // 自动映射变量：将上游节点的输出变量映射到下游节点的输入变量
+  const sourceNode = nodes.value.find(n => n.id === params.source)
+  const targetNode = nodes.value.find(n => n.id === params.target)
+
+  if (sourceNode && targetNode) {
+    const sourceOutputs = sourceNode.data.outputs || []
+    const targetInputs = targetNode.data.inputs || []
+
+    // 初始化 variableMappings
+    if (!targetNode.data.variableMappings) {
+      targetNode.data.variableMappings = {}
+    }
+
+    // 按顺序映射变量
+    sourceOutputs.forEach((output, index) => {
+      if (index < targetInputs.length) {
+        const targetInput = targetInputs[index]
+        const targetVariableMappings = targetNode.data.variableMappings
+
+        // 确保对象存在后再访问属性
+        if (targetInput && targetVariableMappings && output) {
+          targetVariableMappings[targetInput.name] = {
+            sourceNodeId: sourceNode.id,
+            sourceVariableName: output.name
+          }
+        }
+      }
+    }
+  }
+  if (sourceNode && targetNode) {
+    // 自动映射变量：将上游节点的输出变量映射到下游节点的输入变量
+  const sourceNode = nodes.value.find(n => n.id === params.source)
+  const targetNode = nodes.value.find(n => n.id === params.target)
+
+  if (sourceNode && targetNode) {
+    const sourceOutputs = sourceNode.data.outputs || []
+    const targetInputs = targetNode.data.inputs || []
+
+    // 初始化 variableMappings
+    if (!targetNode.data.variableMappings) {
+      targetNode.data.variableMappings = {}
+    }
+
+    // 按顺序映射变量
+    sourceOutputs.forEach((output, index) => {
+      if (index < targetInputs.length) {
+        const targetInput = targetInputs[index]
+        const targetVariableMappings = targetNode.data.variableMappings
+
+        // 确保对象存在后再访问属性
+        if (targetInput && targetVariableMappings && output) {
+          targetVariableMappings[targetInput.name] = {
+            sourceNodeId: sourceNode.id,
+            sourceVariableName: output.name
+          }
+        }
+      }
+    }
+  }
     const sourceOutputs = sourceNode.data.outputs || []
     const targetInputs = targetNode.data.inputs || []
 
