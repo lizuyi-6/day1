@@ -156,6 +156,18 @@ export const availableThemes: Theme[] = [
 const customThemeColors = ref<{ primary: string; secondary: string } | null>(null)
 const currentThemeId = ref('sandstone') // Default to Sandstone
 
+// Initialize custom theme colors from localStorage
+if (typeof window !== 'undefined') {
+  const savedCustomColors = localStorage.getItem('custom-theme-colors')
+  if (savedCustomColors) {
+    try {
+      customThemeColors.value = JSON.parse(savedCustomColors)
+    } catch (e) {
+      console.error('Failed to parse custom theme colors:', e)
+    }
+  }
+}
+
 export function useTheme() {
 
   const applyTheme = (themeId: string) => {

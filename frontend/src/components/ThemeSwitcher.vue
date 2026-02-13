@@ -26,7 +26,7 @@
         <div class="p-2 space-y-1 border-b border-gray-200">
           <p class="text-xs font-bold text-gray-500 px-2 mb-2">精选主题</p>
           <button
-            v-for="theme in availableThemes"
+            v-for="theme in allThemes"
             :key="theme.id"
             @click="handleThemeSelect($event, theme.id)"
             class="w-full relative h-10 rounded-lg overflow-hidden flex items-center text-sm font-bold shadow-sm ring-1 ring-black/5 hover:ring-primary/50 transition-all group"
@@ -120,15 +120,24 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useTheme } from '../composables/useTheme'
 
-const { availableThemes, currentThemeId, applyTheme, saveCustomTheme, customThemeColors } = useTheme()
+const { availableThemes, currentThemeId, applyTheme, saveCustomTheme, customThemeColors, getCustomTheme } = useTheme()
 const isOpen = ref(false)
 
 // Custom theme colors
 const primaryColor = ref('#6366F1')
 const secondaryColor = ref('#F3F4F6')
+
+// All themes including custom theme
+const allThemes = computed(() => {
+  const themes = [...availableThemes]
+  if (getCustomTheme.value) {
+    themes.push(getCustomTheme.value)
+  }
+  return themes.filter(theme => theme && theme.id && theme.name)
+})
 
 // Load saved custom theme colors
 onMounted(() => {
