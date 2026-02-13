@@ -47,7 +47,7 @@ function adjustColor(hex: string, amount: number): string {
 export const availableThemes: Theme[] = [
   {
     id: 'sandstone',
-    name: 'Sandstone',
+    name: '暖砂石韵',
     colors: {
       '--bg-app': '#F5F5F4', // Stone 100
       '--bg-panel': '#ffffff',
@@ -68,7 +68,7 @@ export const availableThemes: Theme[] = [
   },
   {
     id: 'clean-slate',
-    name: 'Clean Slate',
+    name: '素灰雅致',
     colors: {
       '--bg-app': '#F8FAFC', // Slate 50
       '--bg-panel': '#ffffff',
@@ -89,7 +89,7 @@ export const availableThemes: Theme[] = [
   },
   {
     id: 'forest-zen',
-    name: 'Forest Zen',
+    name: '翠林幽禅',
     colors: {
       '--bg-app': '#E3F4EC', // Mint
       '--bg-panel': '#ffffff',
@@ -110,7 +110,7 @@ export const availableThemes: Theme[] = [
   },
   {
     id: 'nordic-blue',
-    name: 'Nordic Blue',
+    name: '冰岛蔚蓝',
     colors: {
       '--bg-app': '#F0F9FF', // Sky 50
       '--bg-panel': '#ffffff',
@@ -131,7 +131,7 @@ export const availableThemes: Theme[] = [
   },
   {
     id: 'matcha-latte',
-    name: 'Matcha Latte',
+    name: '抹茶温韵',
     colors: {
       '--bg-app': '#F1F8E9', // Light Green 50
       '--bg-panel': '#ffffff',
@@ -214,7 +214,7 @@ export function useTheme() {
     if (customThemeColors.value) {
       return {
         id: 'custom',
-        name: 'Custom Theme',
+        name: '专属定制',
         colors: generateCustomTheme(customThemeColors.value.primary, customThemeColors.value.secondary),
         isCustom: true
       }

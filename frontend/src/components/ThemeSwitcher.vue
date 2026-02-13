@@ -24,7 +24,7 @@
       <div v-if="isOpen" class="absolute left-0 bottom-full mb-4 w-72 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-sand/20 overflow-hidden origin-bottom-left z-50">
         <!-- Preset Themes -->
         <div class="p-2 space-y-1 border-b border-gray-200">
-          <p class="text-xs font-bold text-gray-500 px-2 mb-2">预设主题</p>
+          <p class="text-xs font-bold text-gray-500 px-2 mb-2">精选主题</p>
           <button
             v-for="theme in availableThemes"
             :key="theme.id"
@@ -54,13 +54,13 @@
 
         <!-- Custom Theme Section -->
         <div class="p-3 space-y-3">
-          <p class="text-xs font-bold text-gray-500">自定义双色主题</p>
+          <p class="text-xs font-bold text-gray-500">专属定制</p>
 
           <!-- Primary Color Picker -->
           <div class="space-y-2">
             <label class="text-xs text-gray-600 flex items-center gap-2">
               <span class="w-4 h-4 rounded-full" :style="{ background: primaryColor }"></span>
-              主色调
+              主色雅韵
             </label>
             <div class="flex gap-2 items-center">
               <input
@@ -81,7 +81,7 @@
           <div class="space-y-2">
             <label class="text-xs text-gray-600 flex items-center gap-2">
               <span class="w-4 h-4 rounded-full bg-gray-300"></span>
-              背景色
+              底色温润
             </label>
             <div class="flex gap-2 items-center">
               <input
@@ -109,7 +109,7 @@
                 <div class="w-[80%] h-full" :style="{ backgroundColor: secondaryColor }"></div>
               </div>
               <span class="relative z-10 w-full text-center text-xs font-bold text-gray-800">
-                应用自定义
+                应用定制
               </span>
             </button>
           </div>
